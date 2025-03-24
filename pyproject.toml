@@ -1,0 +1,118 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "markitdown-full"
+version = "0.1.0"
+description = 'Complete MarkItDown package with CLI and GUI capabilities'
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+keywords = ["markdown", "conversion", "document", "gui", "utility"]
+authors = [
+  { name = "Adam Fourney", email = "adamfo@microsoft.com" },
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+  "Environment :: Console",
+  "Environment :: X11 Applications :: Tk",
+  "Intended Audience :: End Users/Desktop",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "Topic :: Text Processing :: Markup :: Markdown",
+  "Topic :: Utilities",
+]
+dependencies = [
+  # Core dependencies
+  "beautifulsoup4",
+  "requests",
+  "markdownify",
+  "magika~=0.6.1",
+  "charset-normalizer",
+  
+  # Optional dependencies included by default for full functionality
+  "python-pptx",
+  "mammoth",
+  "pandas",
+  "openpyxl",
+  "xlrd",
+  "pdfminer.six",
+  "olefile",
+  "pydub",
+  "SpeechRecognition",
+  "youtube-transcript-api~=1.0.0",
+  "azure-ai-documentintelligence",
+  "azure-identity"
+]
+
+[project.urls]
+Documentation = "https://github.com/microsoft/markitdown#readme"
+Issues = "https://github.com/microsoft/markitdown/issues"
+Source = "https://github.com/microsoft/markitdown"
+
+[project.scripts]
+markitdown = "markitdown.__main__:main"
+markitdown-ui = "markitdown_ui.__main__:main"
+
+[project.gui-scripts]
+markitdown-gui = "markitdown_ui.__main__:main"
+
+# pipx-specific configuration to ensure it installs all components
+[tool.pipx.run]
+include_deps = true
+include_apps = true
+
+[tool.pipx.dependencies]
+markitdown = {path = "packages/markitdown", develop = false, extras = ["all"]}
+markitdown-ui = {path = "packages/markitdown-ui", develop = false}
+
+[tool.hatch.envs.default]
+dependencies = [
+  "markitdown[all]",
+  "markitdown-ui",
+]
+
+[tool.hatch.envs.test]
+dependencies = [
+  "markitdown[all]",
+  "pytest>=7.0.0",
+  "pytest-cov>=4.0.0",
+]
+
+[tool.hatch.envs.test.scripts]
+test = "pytest {args:packages/markitdown/tests packages/markitdown-ui/tests}"
+test-cov = "pytest --cov {args:packages/markitdown/tests packages/markitdown-ui/tests}"
+
+[tool.hatch.envs.types]
+dependencies = [
+  "markitdown[all]",
+  "markitdown-ui",
+  "mypy>=1.0.0",
+]
+
+[tool.hatch.envs.types.scripts]
+check = "mypy --install-types --non-interactive --ignore-missing-imports {args:packages/markitdown/src packages/markitdown-ui/src}"
+
+[tool.coverage.run]
+source_pkgs = ["markitdown", "markitdown_ui"]
+branch = true
+parallel = true
+omit = [
+  "packages/markitdown/src/markitdown/__about__.py",
+  "packages/markitdown-ui/src/markitdown_ui/__about__.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]
