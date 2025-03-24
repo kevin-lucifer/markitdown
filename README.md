@@ -65,6 +65,47 @@ You can also pipe content:
 cat path-to-file.pdf | markitdown
 ```
 
+### GUI Application
+
+MarkItDown now has a graphical user interface (GUI) application, making it easier to convert files to Markdown without using the command line.
+
+### Installation
+
+To install the GUI version, use pip:
+
+```bash
+pip install markitdown-ui
+```
+
+Alternatively, you can install it from the source:
+
+```bash
+git clone git@github.com:microsoft/markitdown.git
+cd markitdown
+pip install -e packages/markitdown-ui
+```
+
+### Usage
+
+To run the GUI application, use the following command:
+
+```bash
+markitdown-ui
+```
+
+This will open the MarkItDown UI, where you can select files, configure options, and convert them to Markdown.
+
+### Features
+
+The MarkItDown UI provides the following features:
+
+- Simple file selection
+- Configurable conversion options
+- Live preview of the converted Markdown
+- Save and copy functionality
+
+The command-line interface (CLI) version of MarkItDown is still available and can be used as before. Both the UI and CLI versions use the same core conversion functionality, ensuring consistent results.
+
 ### Optional Dependencies
 MarkItDown has optional dependencies for activating various file formats. Earlier in this document, we installed all optional dependencies with the `[all]` option. However, you can also install them individually for more control. For example:
 

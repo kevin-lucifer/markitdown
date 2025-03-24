@@ -1,0 +1,88 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "markitdown-ui"
+dynamic = ["version"]
+description = 'Tkinter GUI for the MarkItDown file conversion utility'
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+keywords = ["markdown", "conversion", "gui", "tkinter"]
+authors = [
+  { name = "Adam Fourney", email = "adamfo@microsoft.com" },
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+]
+dependencies = [
+  "markitdown>=0.1.0a5",
+]
+
+[project.urls]
+Documentation = "https://github.com/microsoft/markitdown#readme"
+Issues = "https://github.com/microsoft/markitdown/issues"
+Source = "https://github.com/microsoft/markitdown"
+
+[tool.hatch.version]
+path = "src/markitdown_ui/__about__.py"
+
+[project.scripts]
+markitdown-ui = "markitdown_ui.__main__:main"
+
+[project.gui-scripts]
+markitdown-gui = "markitdown_ui.__main__:main"
+
+[tool.hatch.envs.default]
+dependencies = [
+  "markitdown[all]",
+]
+
+[tool.hatch.envs.test]
+dependencies = [
+  "markitdown[all]",
+  "pytest>=7.0.0",
+  "pytest-cov>=4.0.0",
+]
+
+[tool.hatch.envs.test.scripts]
+test = "pytest {args:tests}"
+test-cov = "pytest --cov {args:tests}"
+
+[tool.hatch.envs.types]
+dependencies = [
+  "markitdown[all]",
+  "mypy>=1.0.0",
+]
+[tool.hatch.envs.types.scripts]
+check = "mypy --install-types --non-interactive --ignore-missing-imports {args:src/markitdown_ui tests}"
+
+[tool.coverage.run]
+source_pkgs = ["markitdown_ui", "tests"]
+branch = true
+parallel = true
+omit = [
+  "src/markitdown_ui/__about__.py",
+]
+
+[tool.coverage.paths]
+markitdown_ui = ["src/markitdown_ui", "*/markitdown-ui/src/markitdown_ui"]
+tests = ["tests", "*/markitdown-ui/tests"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]
+
+[tool.hatch.build.targets.sdist]
+only-include = ["src/markitdown_ui"]
