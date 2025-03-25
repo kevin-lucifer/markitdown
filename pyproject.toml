@@ -19,11 +19,10 @@ classifiers = [
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
-  "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
   "Environment :: Console",
-  "Environment :: X11 Applications :: Tk",
+  "Environment :: X11 Applications :: GTK",
   "Intended Audience :: End Users/Desktop",
   "Intended Audience :: Developers",
   "Intended Audience :: Science/Research",
@@ -65,14 +64,10 @@ markitdown-ui = "markitdown_ui.__main__:main"
 [project.gui-scripts]
 markitdown-gui = "markitdown_ui.__main__:main"
 
-# pipx-specific configuration to ensure it installs all components
-[tool.pipx.run]
-include_deps = true
+[tool.pipx]
+install_deps = true
 include_apps = true
-
-[tool.pipx.dependencies]
-markitdown = {path = "packages/markitdown", develop = false, extras = ["all"]}
-markitdown-ui = {path = "packages/markitdown-ui", develop = false}
+install_with = ["packages/markitdown[all]", "packages/markitdown-ui"]
 
 [tool.hatch.envs.default]
 dependencies = [

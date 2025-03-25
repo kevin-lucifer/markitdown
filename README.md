@@ -35,14 +35,64 @@ responses unprompted. This suggests that they have been trained on vast amounts 
 Markdown-formatted text, and understand it well. As a side benefit, Markdown conventions
 are also highly token-efficient.
 
+### Using a Virtual Environment
+
+We strongly recommend using a virtual environment to isolate dependencies and ensure consistent behavior across systems. Here's how to set one up:
+
+**Create and activate virtual environment:**
+
+Windows:
+```cmd
+python -m venv .venv
+.venv\Scripts\activate
+```
+
+macOS/Linux:
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+Verify Python version (must be 3.10+):
+```bash
+python --version
+```
+
+**Install MarkItDown in development mode:**
+```bash
+pip install -e packages/markitdown[all]  # -e flag installs in editable mode for development
+```
+
+This setup allows you to modify the source code while maintaining a clean system Python environment.
+
+> [!IMPORTANT]
+> Using a virtual environment:
+> - Prevents package version conflicts with system-wide Python
+> - Allows safe experimentation with dependencies
+> - Makes dependency management reproducible
+> - Is required for contributing to development
+
 ## Installation
 
-To install MarkItDown, use pip: `pip install 'markitdown[all]~=0.1.0a1'`. Alternatively, you can install it from the source:
+To install MarkItDown, we recommend first creating a virtual environment. Then use pip:
 
+```bash
+pip install 'markitdown[all]~=0.1.0a1'
+```
+
+### Development Installation from Source
+
+1. Clone the repository:
 ```bash
 git clone git@github.com:microsoft/markitdown.git
 cd markitdown
-pip install -e packages/markitdown[all]
+```
+
+2. Set up virtual environment (see instructions above)
+
+3. Install with development mode (-e flag):
+```bash
+pip install -e packages/markitdown[all]  # Editable install for code modifications
 ```
 
 ## Usage
@@ -69,20 +119,17 @@ cat path-to-file.pdf | markitdown
 
 MarkItDown now has a graphical user interface (GUI) application, making it easier to convert files to Markdown without using the command line.
 
-### Installation
+### GUI Installation
 
-To install the GUI version, use pip:
+From within your activated virtual environment:
 
 ```bash
-pip install markitdown-ui
+pip install -e packages/markitdown-ui  # -e keeps UI code editable
 ```
 
-Alternatively, you can install it from the source:
-
+Verify installation:
 ```bash
-git clone git@github.com:microsoft/markitdown.git
-cd markitdown
-pip install -e packages/markitdown-ui
+markitdown-ui --version
 ```
 
 ### Usage
