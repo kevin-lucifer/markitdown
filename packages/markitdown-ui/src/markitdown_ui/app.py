@@ -499,15 +499,57 @@ class MarkItDownUI:
         self._update_document_stats()
 
     def _show_about(self) -> None:
-        """Show the about dialog."""
-        about_text = (
-            f"MarkItDown UI v{markitdown_version}\n\n"
-            "A graphical interface for MarkItDown, a tool for converting\n"
-            "various file formats to Markdown.\n\n"
-            "© 2024 Microsoft Corporation\n"
-            "Licensed under the MIT License"
-        )
-        messagebox.showinfo("About MarkItDown UI", about_text)
+        """Show the custom themed about dialog."""
+        about_win = tk.Toplevel(self.root)
+        about_win.title("About MarkItDown UI")
+        about_win.geometry("400x300")
+        about_win.resizable(False, False)
+        about_win.transient(self.root)
+        about_win.grab_set()
+
+        # Center window relative to main application
+        main_x = self.root.winfo_x()
+        main_y = self.root.winfo_y()
+        main_width = self.root.winfo_width()
+        about_win.geometry(f"+{main_x + (main_width - 400)//2}+{main_y + 50}")
+
+        # Get theme colors
+        colors = self.theme.get_theme_colors()
+        text_color = colors["text_foreground"]
+        bg_color = colors["background"]
+        accent_color = colors["accent"]
+
+        # Create canvas with mountain background
+        canvas = tk.Canvas(about_win, bg=bg_color, highlightthickness=0)
+        canvas.pack(fill=tk.BOTH, expand=True)
+
+        # Draw simple mountain shapes
+        canvas.create_rectangle(0, 0, 400, 300, fill=bg_color, outline="")
+        canvas.create_polygon(0, 200, 100, 100, 200, 200, fill="#2a4a7a", outline="")
+        canvas.create_polygon(150, 220, 250, 120, 350, 220, fill="#1a3a6a", outline="")
+        canvas.create_polygon(-50, 250, 150, 150, 350, 250, fill="#3a5a8a", outline="")
+
+        # Add text elements
+        title_font = font.Font(family="Helvetica", size=14, weight="bold")
+        canvas.create_text(200, 80, text="Wanna be Friends?", 
+                        font=title_font, fill=text_color)
+        
+        version_text = f"MarkItDown UI v{markitdown_version}"
+        canvas.create_text(200, 120, text=version_text, 
+                        fill=text_color, font=("Helvetica", 10))
+
+        # Signature
+        sig_font = font.Font(family="Helvetica", size=10, slant="italic")
+        canvas.create_text(380, 280, text="by Kevin", anchor=tk.SE,
+                        font=sig_font, fill=accent_color)
+
+        # Close button
+        btn_frame = ttk.Frame(about_win)
+        btn_frame.pack(pady=10)
+        ttk.Button(btn_frame, text="Close", command=about_win.destroy).pack()
+
+        # Apply theme to widgets
+        self.theme.apply_menu_theme(about_win.nametowidget(btn_frame.winfo_children()[0].winfo_parent()))
     
     def _new_file(self) -> None:
         """Create a new file (clear the preview)."""
