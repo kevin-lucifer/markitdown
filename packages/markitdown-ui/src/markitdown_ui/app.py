@@ -39,6 +39,9 @@ class MarkItDownUI:
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
         
+        # Override default window size
+        PreferencesManager.DEFAULT_PREFERENCES['window_size'] = (1024, 768)
+        
         # Add these after root configuration
         self.prefs = PreferencesManager()
         self.theme = ThemeManager()
@@ -88,6 +91,9 @@ class MarkItDownUI:
         root.bind("<Control-minus>", lambda e: self.zoom_out())
         root.bind("<Control-0>", lambda e: self.reset_zoom())
         root.bind("<Control-t>", lambda e: self._toggle_theme())
+        
+        # Add window resize binding
+        root.bind("<Configure>", lambda e: self._save_window_geometry())
 
     def _create_menu_bar(self) -> None:
         """Create the application menu bar."""
@@ -599,17 +605,32 @@ class MarkItDownUI:
     def _load_window_geometry(self) -> None:
         """Load and apply saved window geometry."""
         size = self.prefs.get_window_size()
-        self.root.geometry(f"{size[0]}x{size[1]}")
-        
         position = self.prefs.get_window_position()
-        if position:
-            self.root.geometry(f"+{position[0]}+{position[1]}")
+        
+        if not position:
+            position = self._get_center_position(size)
+        
+        self.root.geometry(f"{size[0]}x{size[1]}+{position[0]}+{position[1]}")
+    
+    def _save_window_geometry(self) -> None:
+        """Save current window size and position."""
+        width = self.root.winfo_width()
+        height = self.root.winfo_height()
+        x = self.root.winfo_x()
+        y = self.root.winfo_y()
+        self.prefs.set_window_size(width, height)
+        self.prefs.set_window_position(x, y)
+
+    def _get_center_position(self, size: Tuple[int, int]) -> Tuple[int, int]:
+        """Calculate center position based on screen size."""
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        return (
+            (screen_width - size[0]) // 2,
+            (screen_height - size[1]) // 2
+        )
 
     def _on_close(self) -> None:
         """Handle window closing event."""
-        # Save window state
-        self.prefs.set_window_size(self.root.winfo_width(), self.root.winfo_height())
-        self.prefs.set_window_position(self.root.winfo_x(), self.root.winfo_y())
-        
-        # Quit application
+        self._save_window_geometry()
         self.root.quit()
