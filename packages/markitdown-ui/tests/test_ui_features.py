@@ -211,7 +211,7 @@ class TestUIFeatures(unittest.TestCase):
         
         # Check that menu was cleared and items were added
         mock_menu.delete.assert_called_once_with(0, tk.END)
-        self.assertEqual(mock_menu.add_command.call_count, 4)  # 3 files + separator + clear option
+        self.assertEqual(mock_menu.add_command.call_count, 4)  # 3 files + 1 clear option
         mock_menu.add_separator.assert_called_once()
         
         # Test clearing recent files
@@ -235,12 +235,12 @@ class TestUIFeatures(unittest.TestCase):
         self.assertGreaterEqual(len(toolbar_buttons), 5)  # Should have at least 5 buttons
         
         # Test button commands
-        button_commands = set(btn.cget('command') for btn in toolbar_buttons)
-        self.assertIn(self.ui._open_file_dialog, button_commands)
-        self.assertIn(self.ui._save_file, button_commands)
-        self.assertIn(self.ui._toggle_theme, button_commands)
-        self.assertIn(self.ui.zoom_in, button_commands)
-        self.assertIn(self.ui.zoom_out, button_commands)
+        button_commands = [cmd.__name__ for cmd in (btn.cget('command') for btn in toolbar_buttons)]
+        self.assertIn("_open_file_dialog", button_commands)
+        self.assertIn("_save_file", button_commands)
+        self.assertIn("_toggle_theme", button_commands)
+        self.assertIn("zoom_in", button_commands)
+        self.assertIn("zoom_out", button_commands)
         
         # Check style
         for btn in toolbar_buttons:
@@ -261,20 +261,20 @@ class TestUIFeatures(unittest.TestCase):
         bindings = self.root.bind()
         
         # Check for required bindings
-        self.assertIn("<Control-o>", bindings)
-        self.assertIn("<Control-s>", bindings)
-        self.assertIn("<Control-+>", bindings)
-        self.assertIn("<Control-->", bindings)
-        self.assertIn("<Control-0>", bindings)
-        self.assertIn("<Control-t>", bindings)
+        self.assertIn("<Control-Key-o>", bindings)
+        self.assertIn("<Control-Key-s>", bindings)
+        self.assertIn("<Control-Key-plus>", bindings)
+        self.assertIn("<Control-Key-minus>", bindings)
+        self.assertIn("<Control-Key-0>", bindings)
+        self.assertIn("<Control-Key-t>", bindings)
         
         # Test binding callbacks
         with patch.object(self.ui, 'zoom_in') as mock_zoom:
-            self.root.event_generate("<Control-+>")
+            self.root.event_generate("<Control-Key-plus>")
             mock_zoom.assert_called_once()
         # Note: Can't directly test event callbacks in unittest
         # but we can check that the bindings exist and point to the correct methods
-        callback = self.root.bind("<Control-o>")
+        callback = self.root.bind("<Control-Key-o>")
         self.assertIsNotNone(callback)
 
     def test_status_bar_updates(self):
