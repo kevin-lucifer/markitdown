@@ -54,9 +54,6 @@ class MarkItDownUI:
         self.main_frame.columnconfigure(0, weight=1)
         self.main_frame.rowconfigure(2, weight=1)  # Make the preview area expandable
         
-        # Initialize zoom font
-        self._update_zoom_font()
-        
         # Create menu bar
         self._create_menu_bar()
         
@@ -71,6 +68,9 @@ class MarkItDownUI:
         
         # Create preview frame
         self._create_preview_frame()
+        
+        # Initialize zoom font after preview frame exists
+        self._update_zoom_font()
         
         # Create status bar
         self._create_status_bar()
