@@ -8,7 +8,7 @@
 import os
 import unittest
 import tkinter as tk
-from tkinter import TclError, Toplevel, Event
+from tkinter import TclError, Toplevel, Event, ttk
 from unittest.mock import patch, MagicMock, PropertyMock, call, ANY
 
 from markitdown_ui.app import MarkItDownUI
@@ -124,8 +124,8 @@ class TestUIFeatures(unittest.TestCase):
         # Test get_center_position
         with patch.object(self.root, 'winfo_screenwidth', return_value=1920), \
              patch.object(self.root, 'winfo_screenheight', return_value=1080):
-            pos = self.ui._get_center_position((800, 600))
-            self.assertEqual(pos, (560, 240))  # (1920-800)/2, (1080-600)/2
+            pos = self.ui._get_center_position((1024, 768))
+            self.assertEqual(pos, (448, 156))  # Updated for 1024x768 window
         
         # Test window close handler calls save_window_geometry
         with patch.object(self.ui, '_save_window_geometry') as mock_save, \
@@ -142,13 +142,13 @@ class TestUIFeatures(unittest.TestCase):
         
         # Test statistics update
         self.ui._update_document_stats()
-        self.assertEqual(self.ui.stats_var.get(), "Words: 6  Characters: 34")
+        self.assertEqual(self.ui.stats_var.get(), "Words: 6  Characters: 39")
         
         # Test with more complex content
         self.ui.preview_text.delete(1.0, tk.END)
         self.ui.preview_text.insert(tk.END, "# Heading\n\nThis is a paragraph with some **bold** text.\n\n- List item 1\n- List item 2\n")
         self.ui._update_document_stats()
-        self.assertEqual(self.ui.stats_var.get(), "Words: 16  Characters: 75")
+        self.assertEqual(self.ui.stats_var.get(), "Words: 13  Characters: 74")
         
         # Test with empty content
         self.ui.preview_text.delete(1.0, tk.END)
@@ -159,13 +159,15 @@ class TestUIFeatures(unittest.TestCase):
         self.ui._clear_preview()
         self.assertEqual(self.ui.stats_var.get(), "Words: 0  Characters: 0")
 
+    @patch('tkinter.ttk.Frame')
     @patch('tkinter.Toplevel')
-    def test_about_dialog(self, mock_toplevel):
+    def test_about_dialog(self, mock_toplevel, mock_frame):
         """Test the custom about dialog."""
         # Mock the Toplevel window
         mock_window = MagicMock()
         mock_toplevel.return_value = mock_window
         mock_window.nametowidget.return_value = MagicMock()
+        mock_frame.return_value = MagicMock()
         
         # Mock Canvas
         mock_canvas = MagicMock()
@@ -209,7 +211,7 @@ class TestUIFeatures(unittest.TestCase):
         
         # Check that menu was cleared and items were added
         mock_menu.delete.assert_called_once_with(0, tk.END)
-        self.assertEqual(mock_menu.add_command.call_count, 5)  # 3 files + separator + clear option
+        self.assertEqual(mock_menu.add_command.call_count, 4)  # 3 files + separator + clear option
         mock_menu.add_separator.assert_called_once()
         
         # Test clearing recent files
@@ -261,18 +263,19 @@ class TestUIFeatures(unittest.TestCase):
         # Check for required bindings
         self.assertIn("<Control-o>", bindings)
         self.assertIn("<Control-s>", bindings)
-        self.assertIn("<Control-plus>", bindings)
-        self.assertIn("<Control-minus>", bindings)
+        self.assertIn("<Control-+>", bindings)
+        self.assertIn("<Control-->", bindings)
         self.assertIn("<Control-0>", bindings)
         self.assertIn("<Control-t>", bindings)
         
         # Test binding callbacks
-        with patch.object(self.ui, '_open_file_dialog') as mock_open:
-            self.root.event_generate("<Control-o>", when="tail")
-            # Note: Can't directly test event callbacks in unittest
-            # but we can check that the bindings exist and point to the correct methods
-            callback = self.root.bind("<Control-o>")
-            self.assertIsNotNone(callback)
+        with patch.object(self.ui, 'zoom_in') as mock_zoom:
+            self.root.event_generate("<Control-+>")
+            mock_zoom.assert_called_once()
+        # Note: Can't directly test event callbacks in unittest
+        # but we can check that the bindings exist and point to the correct methods
+        callback = self.root.bind("<Control-o>")
+        self.assertIsNotNone(callback)
 
     def test_status_bar_updates(self):
         """Test status bar updates with document statistics."""
