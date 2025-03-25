@@ -8,11 +8,14 @@
 import os
 import threading
 import tkinter as tk
-from tkinter import ttk, filedialog, scrolledtext, messagebox, Menu
+from tkinter import ttk, filedialog, scrolledtext, messagebox, Menu, font
 from typing import Optional, Dict, Any, List, Tuple
 
 from markitdown import MarkItDown, StreamInfo, DocumentConverterResult
 from markitdown.__about__ import __version__ as markitdown_version
+
+from markitdown_ui.preferences import PreferencesManager
+from markitdown_ui.theme import ThemeManager
 
 
 class MarkItDownUI:
@@ -30,10 +33,20 @@ class MarkItDownUI:
         self.current_result: Optional[DocumentConverterResult] = None
         self.conversion_thread: Optional[threading.Thread] = None
         self.is_converting = False
+        self.zoom_level = 0
         
         # Configure the root window
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
+        
+        # Add these after root configuration
+        self.prefs = PreferencesManager()
+        self.theme = ThemeManager()
+        self.theme.initialize(root)
+        
+        # Load saved preferences
+        self._load_window_geometry()
+        self.zoom_level = self.prefs.get_zoom_level()
         
         # Create the main frame
         self.main_frame = ttk.Frame(self.root)
@@ -41,8 +54,14 @@ class MarkItDownUI:
         self.main_frame.columnconfigure(0, weight=1)
         self.main_frame.rowconfigure(2, weight=1)  # Make the preview area expandable
         
+        # Initialize zoom font
+        self._update_zoom_font()
+        
         # Create menu bar
         self._create_menu_bar()
+        
+        # Create toolbar
+        self._create_toolbar()
         
         # Create the file selection frame
         self._create_file_selection_frame()
@@ -58,36 +77,84 @@ class MarkItDownUI:
         
         # Update status
         self._update_status("Ready")
+        
+        # Set closing handler
+        self.root.protocol("WM_DELETE_WINDOW", self._on_close)
+        
+        # Add these bindings
+        root.bind("<Control-o>", lambda e: self._open_file_dialog())
+        root.bind("<Control-s>", lambda e: self._save_file())
+        root.bind("<Control-plus>", lambda e: self.zoom_in())
+        root.bind("<Control-minus>", lambda e: self.zoom_out())
+        root.bind("<Control-0>", lambda e: self.reset_zoom())
+        root.bind("<Control-t>", lambda e: self._toggle_theme())
 
     def _create_menu_bar(self) -> None:
-        """Create the menu bar with File, Edit, and Help menus."""
-        menubar = Menu(self.root)
+        """Create the application menu bar."""
+        menubar = tk.Menu(self.root)
         self.root.config(menu=menubar)
 
         # File menu
-        file_menu = Menu(menubar, tearoff=0)
+        file_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="File", menu=file_menu)
-        file_menu.add_command(label="Open...", command=self._open_file_dialog)
+        file_menu.add_command(label="New", accelerator="Ctrl+N", command=self._new_file)
+        file_menu.add_command(label="Open...", accelerator="Ctrl+O", command=self._open_file_dialog)
+        file_menu.add_command(label="Save", accelerator="Ctrl+S", command=self._save_file)
         file_menu.add_command(label="Save As...", command=self._save_file_dialog)
+        
+        # Recent Files submenu
+        self.recent_menu = tk.Menu(file_menu, tearoff=0)
+        file_menu.add_cascade(label="Recent Files", menu=self.recent_menu)
+        self._update_recent_files_menu()
+        
         file_menu.add_separator()
-        file_menu.add_command(label="Exit", command=self.root.quit)
+        file_menu.add_command(label="Exit", accelerator="Alt+F4", command=self._on_close)
 
         # Edit menu
-        edit_menu = Menu(menubar, tearoff=0)
+        edit_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Edit", menu=edit_menu)
-        edit_menu.add_command(label="Copy Markdown", command=self._copy_markdown)
-        edit_menu.add_command(label="Select All", command=self._select_all)
-        edit_menu.add_command(label="Clear", command=self._clear_preview)
+        edit_menu.add_command(label="Copy", accelerator="Ctrl+C", command=self._copy_markdown)
+        edit_menu.add_command(label="Paste", accelerator="Ctrl+V", command=self._paste_content)
+        edit_menu.add_command(label="Select All", accelerator="Ctrl+A", command=self._select_all)
+
+        # View menu
+        view_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="View", menu=view_menu)
+        view_menu.add_command(label="Zoom In", accelerator="Ctrl++", command=self.zoom_in)
+        view_menu.add_command(label="Zoom Out", accelerator="Ctrl+-", command=self.zoom_out)
+        view_menu.add_command(label="Reset Zoom", accelerator="Ctrl+0", command=self.reset_zoom)
+        view_menu.add_separator()
+        view_menu.add_command(label="Toggle Theme", accelerator="Ctrl+T", command=self._toggle_theme)
 
         # Help menu
-        help_menu = Menu(menubar, tearoff=0)
+        help_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Help", menu=help_menu)
         help_menu.add_command(label="About", command=self._show_about)
+        help_menu.add_command(label="Documentation", command=self._show_docs)
+
+    def _create_toolbar(self) -> None:
+        """Create the toolbar with common actions."""
+        self.toolbar = ttk.Frame(self.main_frame, style="Toolbar.TFrame")
+        self.toolbar.grid(row=0, column=0, sticky="ew", pady=(0, 5))
+        
+        # Toolbar buttons
+        ttk.Button(self.toolbar, text="📁 Open", style="Toolbar.TButton", 
+              command=self._open_file_dialog).pack(side=tk.LEFT, padx=2)
+        ttk.Button(self.toolbar, text="💾 Save", style="Toolbar.TButton",
+              command=self._save_file).pack(side=tk.LEFT, padx=2)
+        ttk.Button(self.toolbar, text="🌓 Theme", style="Toolbar.TButton",
+              command=self._toggle_theme).pack(side=tk.LEFT, padx=2)
+        ttk.Button(self.toolbar, text="+ Zoom In", style="Toolbar.TButton",
+              command=self.zoom_in).pack(side=tk.LEFT, padx=2)
+        ttk.Button(self.toolbar, text="- Zoom Out", style="Toolbar.TButton",
+              command=self.zoom_out).pack(side=tk.LEFT, padx=2)
+        ttk.Button(self.toolbar, text="↺ Reset Zoom", style="Toolbar.TButton",
+              command=self.reset_zoom).pack(side=tk.LEFT, padx=2)
 
     def _create_file_selection_frame(self) -> None:
         """Create the file selection frame with Browse button and file path entry."""
         file_frame = ttk.LabelFrame(self.main_frame, text="File Selection")
-        file_frame.grid(row=0, column=0, sticky="ew", pady=(0, 10))
+        file_frame.grid(row=1, column=0, sticky="ew", pady=(0, 10))
         file_frame.columnconfigure(0, weight=1)
         
         # File path entry and browse button
@@ -104,7 +171,7 @@ class MarkItDownUI:
     def _create_parameters_frame(self) -> None:
         """Create the parameters frame with all conversion options."""
         params_frame = ttk.LabelFrame(self.main_frame, text="Parameters")
-        params_frame.grid(row=1, column=0, sticky="ew", pady=(0, 10))
+        params_frame.grid(row=2, column=0, sticky="ew", pady=(0, 10))
         params_frame.columnconfigure(1, weight=1)
         
         # Extension hint
@@ -150,7 +217,7 @@ class MarkItDownUI:
     def _create_preview_frame(self) -> None:
         """Create the preview frame with markdown display area and save button."""
         preview_frame = ttk.LabelFrame(self.main_frame, text="Markdown Preview")
-        preview_frame.grid(row=2, column=0, sticky="nsew", pady=(0, 10))
+        preview_frame.grid(row=3, column=0, sticky="nsew", pady=(0, 10))
         preview_frame.columnconfigure(0, weight=1)
         preview_frame.rowconfigure(0, weight=1)
         
@@ -173,21 +240,31 @@ class MarkItDownUI:
         # Initially disable buttons
         self.copy_button["state"] = "disabled"
         self.save_button["state"] = "disabled"
+        
+        # Add this binding in _create_preview_frame after creating preview_text
+        self.preview_text.bind("<<Modified>>", self._update_document_stats)
 
     def _create_status_bar(self) -> None:
-        """Create a status bar at the bottom of the application."""
+        """Create the status bar with document statistics."""
+        status_frame = ttk.Frame(self.main_frame)
+        status_frame.grid(row=4, column=0, sticky="ew")
+        
+        # Document statistics
+        self.stats_var = tk.StringVar()
+        ttk.Label(status_frame, textvariable=self.stats_var, style="StatusBar.TLabel",
+             anchor=tk.W).pack(side=tk.LEFT, fill=tk.X, expand=True)
+        
+        # Conversion status
         self.status_var = tk.StringVar(value="Ready")
-        status_bar = ttk.Label(
-            self.main_frame, textvariable=self.status_var, relief=tk.SUNKEN, anchor=tk.W
-        )
-        status_bar.grid(row=3, column=0, sticky="ew")
+        ttk.Label(status_frame, textvariable=self.status_var, style="StatusBar.TLabel",
+             anchor=tk.E).pack(side=tk.RIGHT)
         
         # Progress bar for conversions
         self.progress_var = tk.DoubleVar(value=0.0)
         self.progress_bar = ttk.Progressbar(
             self.main_frame, orient=tk.HORIZONTAL, length=100, mode="indeterminate", variable=self.progress_var
         )
-        self.progress_bar.grid(row=4, column=0, sticky="ew", pady=(5, 0))
+        self.progress_bar.grid(row=5, column=0, sticky="ew", pady=(5, 0))
         self.progress_bar.grid_remove()  # Hide initially
 
     def _toggle_docintel(self) -> None:
@@ -235,6 +312,10 @@ class MarkItDownUI:
         
         # Update status
         self._update_status(f"File selected: {os.path.basename(file_path)}")
+        
+        # Add to recent files
+        self.prefs.add_recent_file(file_path)
+        self._update_recent_files_menu()
 
     def _convert_file(self) -> None:
         """Convert the selected file to Markdown."""
@@ -289,7 +370,7 @@ class MarkItDownUI:
         
         Args:
             file_path: Path to the file to convert
-            **kwargs: Additional arguments for the conversion
+        **kwargs: Additional arguments for the conversion
         """
         try:
             # Reinitialize converter with plugin setting
@@ -318,6 +399,9 @@ class MarkItDownUI:
             # Enable save and copy buttons
             self.copy_button["state"] = "normal"
             self.save_button["state"] = "normal"
+            
+            # Update document statistics
+            self._update_document_stats()
         else:
             self._update_status("Conversion produced no result.")
 
@@ -406,6 +490,7 @@ class MarkItDownUI:
         self.current_result = None
         self.copy_button["state"] = "disabled"
         self.save_button["state"] = "disabled"
+        self._update_document_stats()
 
     def _show_about(self) -> None:
         """Show the about dialog."""
@@ -417,3 +502,114 @@ class MarkItDownUI:
             "Licensed under the MIT License"
         )
         messagebox.showinfo("About MarkItDown UI", about_text)
+    
+    def _new_file(self) -> None:
+        """Create a new file (clear the preview)."""
+        self.open_file("")
+        self._clear_preview()
+        self._update_status("New file created")
+    
+    def _save_file(self) -> None:
+        """Save the current markdown content."""
+        if not self.current_result:
+            messagebox.showinfo("Info", "No conversion result to save.")
+            return
+        
+        if not self.current_file:
+            self._save_file_dialog()
+            return
+        
+        try:
+            with open(self.current_file, "w", encoding="utf-8") as f:
+                f.write(self.current_result.text_content)
+            self._update_status(f"File saved: {os.path.basename(self.current_file)}")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to save file: {str(e)}")
+    
+    def _paste_content(self) -> None:
+        """Paste content from clipboard to preview."""
+        try:
+            text = self.root.clipboard_get()
+            self.preview_text.insert(tk.INSERT, text)
+            self._update_document_stats()
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to paste: {str(e)}")
+    
+    def _show_docs(self) -> None:
+        """Show the documentation."""
+        messagebox.showinfo("Documentation", "No documentation available yet.")
+    
+    def zoom_in(self) -> None:
+        """Increase the preview text zoom level."""
+        self.zoom_level = min(5, self.zoom_level + 1)
+        self._update_zoom_font()
+        self.prefs.set_zoom_level(self.zoom_level)
+
+    def zoom_out(self) -> None:
+        """Decrease the preview text zoom level."""
+        self.zoom_level = max(-5, self.zoom_level - 1)
+        self._update_zoom_font()
+        self.prefs.set_zoom_level(self.zoom_level)
+
+    def reset_zoom(self) -> None:
+        """Reset the zoom level to default."""
+        self.zoom_level = 0
+        self._update_zoom_font()
+        self.prefs.set_zoom_level(self.zoom_level)
+
+    def _update_zoom_font(self) -> None:
+        """Update the preview text font size based on zoom level."""
+        base_size = 10
+        new_size = base_size + self.zoom_level
+        self.preview_text.configure(font=("Courier", new_size))
+    
+    def _update_document_stats(self, event=None) -> None:
+        """Update the document statistics in the status bar."""
+        content = self.preview_text.get("1.0", "end-1c")
+        words = len(content.split())
+        chars = len(content)
+        self.stats_var.set(f"Words: {words}  Characters: {chars}")
+    
+    def _update_recent_files_menu(self) -> None:
+        """Update the Recent Files submenu with current list."""
+        self.recent_menu.delete(0, tk.END)
+        recent_files = self.prefs.get_recent_files()
+        
+        for path, _ in recent_files:
+            self.recent_menu.add_command(
+                label=os.path.basename(path),
+                command=lambda p=path: self.open_file(p)
+            )
+        
+        self.recent_menu.add_separator()
+        self.recent_menu.add_command(label="Clear Recent", command=self._clear_recent_files)
+
+    def _clear_recent_files(self) -> None:
+        """Clear the recent files list."""
+        self.prefs.clear_recent_files()
+        self._update_recent_files_menu()
+    
+    def _toggle_theme(self) -> None:
+        """Toggle between light and dark themes."""
+        new_theme = self.theme.toggle_theme()
+        self.theme.apply_theme(new_theme)
+        self.theme.apply_text_widget_theme(self.preview_text)
+        self.theme.apply_menu_theme(self.root.nametowidget(self.root["menu"]))
+    
+    def _load_window_geometry(self) -> None:
+        """Load and apply saved window geometry."""
+        size = self.prefs.get_window_size()
+        self.root.geometry(f"{size[0]}x{size[1]}")
+        
+        position = self.prefs.get_window_position()
+        if position:
+            self.root.geometry(f"+{position[0]}+{position[1]}")
+
+    def _on_close(self) -> None:
+        """Handle window closing event."""
+        # Save window state
+        self.prefs.set_window_size(self.root.winfo_width(), self.root.winfo_height())
+        self.prefs.set_window_position(self.root.winfo_x(), self.root.winfo_y())
+        
+        # Quit application
+        self.root.quit()
