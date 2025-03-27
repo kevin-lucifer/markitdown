@@ -264,8 +264,8 @@ You can help by looking at issues or helping review PRs. Any issue or PR is welc
 
 |            | All                                                          | Especially Needs Help from Community                                                                                                      |
 | ---------- | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| **Issues** | [All Issues](https://github.com/microsoft/markitdown/issues) | [Issues open for contribution](https://github.com/microsoft/markitdown/issues?q=is%3Aissue+is%3Aopen+label%3A%22open+for+contribution%22) |
-| **PRs**    | [All PRs](https://github.com/microsoft/markitdown/pulls)     | [PRs open for reviewing](https://github.com/microsoft/markitdown/pulls?q=is%3Apr+is%3Aopen+label%3A%22open+for+reviewing%22)              |
+| **Issues** | [All Issues](https://github.com/kevin-lucifer/markitdown/issues) | [Issues open for contribution](https://github.com/kevin-lucifer/markitdown/issues?q=is%3Aissue+is%3Aopen+label%3A%22open+for+contribution%22) |
+| **PRs**    | [All PRs](https://github.com/kevin-lucifer/markitdown/pulls)     | [PRs open for reviewing](https://github.com/kevin-lucifer/markitdown/pulls?q=is%3Apr+is%3Aopen+label%3A%22open+for+reviewing%22)              |
 
 </div>
 
