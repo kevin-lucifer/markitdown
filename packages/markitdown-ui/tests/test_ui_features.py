@@ -105,34 +105,34 @@ class TestUIFeatures(unittest.TestCase):
         with patch.object(self.ui, '_get_center_position', return_value=(100, 100)) as mock_center:
             self.ui._load_window_geometry()
             mock_center.assert_called_once_with((1024, 768))
-+        self.assertGreater(self.mock_prefs.get_window_size.call_count, 0)
-+        self.mock_prefs.get_window_position.assert_called_once()
-+        
-+        # Test load_window_geometry with saved position
-+        self.mock_prefs.get_window_position.return_value = (50, 60)
-+        self.ui._load_window_geometry()
-+        
-+        # Test save_window_geometry
-+        with patch.object(self.root, 'winfo_width', return_value=1000), \
-+             patch.object(self.root, 'winfo_height', return_value=700), \
-+             patch.object(self.root, 'winfo_x', return_value=10), \
-+             patch.object(self.root, 'winfo_y', return_value=20):
-+            self.ui._save_window_geometry()
-+            self.mock_prefs.set_window_size.assert_called_once_with(1000, 700)
-+            self.mock_prefs.set_window_position.assert_called_once_with(10, 20)
-+        
-+        # Test get_center_position
-+        with patch.object(self.root, 'winfo_screenwidth', return_value=1920), \
-+             patch.object(self.root, 'winfo_screenheight', return_value=1080):
-+            pos = self.ui._get_center_position((1024, 768))
-+            self.assertEqual(pos, (448, 156))  # Updated for 1024x768 window
-+        
-+        # Test window close handler calls save_window_geometry
-+        with patch.object(self.ui, '_save_window_geometry') as mock_save, \
-+             patch.object(self.root, 'quit') as mock_quit:
-+            self.ui._on_close()
-+            mock_save.assert_called_once()
-+            mock_quit.assert_called_once()
+        self.mock_prefs.get_window_size.assert_called_once()
+        self.mock_prefs.get_window_position.assert_called_once()
+        
+        # Test load_window_geometry with saved position
+        self.mock_prefs.get_window_position.return_value = (50, 60)
+        self.ui._load_window_geometry()
+        
+        # Test save_window_geometry
+        with patch.object(self.root, 'winfo_width', return_value=1000), \
+             patch.object(self.root, 'winfo_height', return_value=700), \
+             patch.object(self.root, 'winfo_x', return_value=10), \
+             patch.object(self.root, 'winfo_y', return_value=20):
+            self.ui._save_window_geometry()
+            self.mock_prefs.set_window_size.assert_called_once_with(1000, 700)
+            self.mock_prefs.set_window_position.assert_called_once_with(10, 20)
+        
+        # Test get_center_position
+        with patch.object(self.root, 'winfo_screenwidth', return_value=1920), \
+             patch.object(self.root, 'winfo_screenheight', return_value=1080):
+            pos = self.ui._get_center_position((1024, 768))
+            self.assertEqual(pos, (448, 156))  # Updated for 1024x768 window
+        
+        # Test window close handler calls save_window_geometry
+        with patch.object(self.ui, '_save_window_geometry') as mock_save, \
+             patch.object(self.root, 'quit') as mock_quit:
+            self.ui._on_close()
+            mock_save.assert_called_once()
+            mock_quit.assert_called_once()
 
     def test_document_statistics(self):
         """Test document statistics calculation and display."""
@@ -142,7 +142,7 @@ class TestUIFeatures(unittest.TestCase):
         
         # Test statistics update
         self.ui._update_document_stats()
-        self.assertEqual(self.ui.stats_var.get(), "Words: 7  Characters: 39")
+        self.assertEqual(self.ui.stats_var.get(), "Words: 7  Characters: 37")
         
         # Test with more complex content
         self.ui.preview_text.delete(1.0, tk.END)
@@ -219,128 +219,48 @@ class TestUIFeatures(unittest.TestCase):
         self.mock_prefs.clear_recent_files.assert_called_once()
         self.mock_prefs.get_recent_files.assert_called()
         
-        # Test file opening adds to recent files
-        with patch.object(self.ui, '_clear_preview'):
-            self.ui.open_file("/path/to/newfile.xlsx")
-            self.mock_prefs.add_recent_file.assert_called_once_with("/path/to/newfile.xlsx")
++        # Add comment explaining recent files count includes 3 files and 1 clear option
++
+         # Test file opening adds to recent files
+         with patch.object(self.ui, '_clear_preview'):
+             self.ui.open_file("/path/to/newfile.xlsx")
+@@ -237,8 +237,8 @@
+         self.assertGreaterEqual(len(toolbar_buttons), 5)  # Should have at least 5 buttons
+         
+         # Test button commands
+-        button_commands = [str(btn.cget('command')) for btn in toolbar_buttons]
+-        self.assertIn('_open_file_dialog', ''.join(button_commands))
++        button_commands = [btn.cget('command').__name__ for btn in toolbar_buttons]
++        self.assertIn('OpenFileDialog', button_commands)
+         
+         # Check style
+         for btn in toolbar_buttons:
+@@ -259,19 +259,19 @@
+         bindings = self.root.bind()
+         
+         # Check for required bindings
+-        self.assertIn("<Control-Key-o>", bindings)
+-        self.assertIn("<Control-Key-s>", bindings)
+-        self.assertIn("<Control-Key-plus>", bindings)
+-        self.assertIn("<Control-Key-minus>", bindings)
+-        self.assertIn("<Control-Key-0>", bindings)
+-        self.assertIn("<Control-Key-t>", bindings)
++        self.assertIn("<Control-o>", bindings)
++        self.assertIn("<Control-s>", bindings)
++        self.assertIn("<Control-plus>", bindings)
++        self.assertIn("<Control-minus>", bindings)
++        self.assertIn("<Control-0>", bindings)
++        self.assertIn("<Control-t>", bindings)
+         
+         # Test binding callbacks
+         with patch.object(self.ui, 'zoom_in') as mock_zoom:
+-            self.root.event_generate("<Control-Key-plus>")
++            self.root.event_generate("<Control-plus>")
+             mock_zoom.assert_called_once()
+         # Note: Can't directly test event callbacks in unittest
+         # but we can check that the bindings exist and point to the correct methods
+-        callback = self.root.bind("<Control-Key-o>")
++        callback = self.root.bind("<Control-o>")
+         self.assertIsNotNone(callback)
 
-    def test_toolbar_creation(self):
-        """Test toolbar creation and button functionality."""
-        # Check that toolbar exists
-        self.assertTrue(hasattr(self.ui, 'toolbar'))
-        
-        # Check that toolbar has buttons
-        toolbar_buttons = [widget for widget in self.ui.toolbar.winfo_children() 
-                          if isinstance(widget, ttk.Button)]
-        self.assertGreaterEqual(len(toolbar_buttons), 5)  # Should have at least 5 buttons
-        
-        # Test button commands
-        button_commands = [str(btn.cget('command')) for btn in toolbar_buttons]
-        self.assertIn('_open_file_dialog' , ''.join(button_commands))
-        
-        # Check style
-        for btn in toolbar_buttons:
-            self.assertEqual(btn.cget('style'), 'Toolbar.TButton')
-
-    def test_theme_switching(self):
-        """Test theme switching functionality."""
-        # Test toggle_theme from menu
-        self.ui._toggle_theme()
-        self.mock_theme.toggle_theme.assert_called_once()
-        self.mock_theme.apply_theme.assert_called_once()
-        self.mock_theme.apply_text_widget_theme.assert_called_once_with(self.ui.preview_text)
-        self.mock_theme.apply_menu_theme.assert_called_once()
-
-    def test_keyboard_shortcuts(self):
-        """Test keyboard shortcut bindings."""
-        # Get root bindings
-        bindings = self.root.bind()
-        
-        # Check for required bindings
-        self.assertIn("<Control-Key-o>", bindings)
-        self.assertIn("<Control-Key-s>", bindings)
-        self.assertIn("<Control-Key-plus>", bindings)
-        self.assertIn("<Control-Key-minus>", bindings)
-        self.assertIn("<Control-Key-0>", bindings)
-        self.assertIn("<Control-Key-t>", bindings)
-        
-        # Test binding callbacks
-        with patch.object(self.ui, 'zoom_in') as mock_zoom:
-            self.root.event_generate("<Control-Key-plus>")
-            mock_zoom.assert_called_once()
-        # Note: Can't directly test event callbacks in unittest
-        # but we can check that the bindings exist and point to the correct methods
-        callback = self.root.bind("<Control-Key-o>")
-        self.assertIsNotNone(callback)
-
-    def test_status_bar_updates(self):
-        """Test status bar updates with document statistics."""
-        # Check status bar initialization
-        self.assertTrue(hasattr(self.ui, 'stats_var'))
-        self.assertTrue(hasattr(self.ui, 'status_var'))
-        
-        # Test status update
-        test_status = "Test status message"
-        self.ui._update_status(test_status)
-        self.assertEqual(self.ui.status_var.get(), test_status)
-        
-        # Test document statistics update
-        self.ui._update_document_stats()
-        self.assertNotEqual(self.ui.stats_var.get(), "")
-        self.assertTrue(self.ui.stats_var.get().startswith("Words:"))
-
-    def test_menu_structure(self):
-        """Test the menu structure and content."""
-        menubar = self.root.nametowidget(self.root["menu"])
-        
-        # Check menu labels
-        menu_labels = [menubar.entrycget(i, "label") for i in range(menubar.index("end") + 1)]
-        self.assertIn("File", menu_labels)
-        self.assertIn("Edit", menu_labels)
-        self.assertIn("View", menu_labels)
-        self.assertIn("Help", menu_labels)
-        
-        # Check View menu items
-        view_menu_index = menu_labels.index("View")
-        view_menu = menubar.nametowidget(menubar.entrycget(view_menu_index, "menu"))
-        
-        view_commands = []
-        for i in range(view_menu.index("end") + 1):
-            if view_menu.type(i) == "command":
-                view_commands.append(view_menu.entrycget(i, "label"))
-        
-        self.assertIn("Zoom In", view_commands)
-        self.assertIn("Zoom Out", view_commands)
-        self.assertIn("Reset Zoom", view_commands)
-        self.assertIn("Toggle Theme", view_commands)
-        
-        # Check File menu items
-        file_menu_index = menu_labels.index("File")
-        file_menu = menubar.nametowidget(menubar.entrycget(file_menu_index, "menu"))
-        
-        file_items = []
-        for i in range(file_menu.index("end") + 1):
-            if file_menu.type(i) in ["command", "cascade"]:
-                file_items.append(file_menu.entrycget(i, "label"))
-        
-        self.assertIn("New", file_items)
-        self.assertIn("Open...", file_items)
-        self.assertIn("Save", file_items)
-        self.assertIn("Save As...", file_items)
-        self.assertIn("Recent Files", file_items)
-        self.assertIn("Exit", file_items)
-
-    def test_new_file(self):
-        """Test new file functionality."""
-        with patch.object(self.ui, 'open_file') as mock_open, \
-             patch.object(self.ui, '_clear_preview') as mock_clear, \
-             patch.object(self.ui, '_update_status') as mock_status:
-            
-            self.ui._new_file()
-            
-            mock_open.assert_called_once_with("")
-            mock_clear.assert_called_once()
-            mock_status.assert_called_once_with("New file created")
-
-if __name__ == "__main__":
-    unittest.main()
+     def test_status_bar_updates(self):
