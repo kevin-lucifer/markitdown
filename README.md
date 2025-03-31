@@ -8,22 +8,20 @@
 > I add GUI for the command-line tool MarkItDown,THAT'S ALL. 
 >Read the kt session or truobleshootting doc in case u got any issue about how to setup the python-env.
 
-MarkItDown is a lightweight Python utility for converting various files to Markdown for use with LLMs and related text analysis pipelines. To this end, it is most comparable to [textract](https://github.com/deanmalmgren/textract), but with a focus on preserving important document structure and content as Markdown (including: headings, lists, tables, links, etc.) While the output is often reasonably presentable and human-friendly, it is meant to be consumed by text analysis tools -- and may not be the best option for high-fidelity document conversions for human consumption.
+## Quick Start: MarkItDown UI
 
-At present, MarkItDown supports:
+The MarkItDown UI provides a graphical interface for converting files to Markdown format. Get started in seconds:
 
-- PDF
-- PowerPoint
-- Word
-- Excel
-- Images (EXIF metadata and OCR)
-- Audio (EXIF metadata and speech transcription)
-- HTML
-- Text-based formats (CSV, JSON, XML)
-- ZIP files (iterates over contents)
-- Youtube URLs
-- EPubs
-- ... and more!
+```bash
+pip install markitdown-ui~=0.1.0
+markitdown-ui
+```
+
+Features include:
+- File selection dialog with drag-and-drop support
+- Configurable conversion parameters
+- Preview of converted Markdown content
+- Export to file or clipboard
 
 ## Why Markdown?
 
