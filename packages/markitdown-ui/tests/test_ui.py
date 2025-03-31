@@ -9,11 +9,11 @@ import os
 import sys
 import unittest
 import tkinter as tk
-from tkinter import TclError
+from tkinter import TclError, ttk
 from unittest.mock import patch, MagicMock, PropertyMock
 
 # Import the UI components
-from markitdown_ui.app import MarkItDownUI
+from markitdown_ui.app import MarkItDownUI, COMMON_MIMETYPES, COMMON_CHARSETS
 from markitdown_ui.converter import ConverterManager, ConversionProgress
 from markitdown_ui.__main__ import main
 
@@ -80,6 +80,80 @@ class TestMarkItDownUI(unittest.TestCase):
         self.ui.use_docintel_var.set(False)
         self.ui._toggle_docintel()
         self.assertEqual(self.ui.endpoint_entry["state"], "disabled")
+
+    def test_combobox_parameters(self):
+        """Test combobox parameter controls in the UI."""
+        # Find parameters frame
+        params_frame = None
+        for widget in self.ui.main_frame.winfo_children():
+            if isinstance(widget, ttk.LabelFrame) and widget.cget("text") == "Parameters":
+                params_frame = widget
+                break
+        
+        self.assertIsNotNone(params_frame, "Parameters frame not found")
+        
+        # Find combobox widgets
+        mimetype_combo = None
+        charset_combo = None
+        for child in params_frame.winfo_children():
+            if isinstance(child, ttk.Combobox):
+                grid_info = child.grid_info()
+                if grid_info["row"] == 1:
+                    mimetype_combo = child
+                elif grid_info["row"] == 2:
+                    charset_combo = child
+        
+        # Verify combobox existence
+        self.assertIsNotNone(mimetype_combo, "MIME type combobox not found")
+        self.assertIsNotNone(charset_combo, "Charset combobox not found")
+        
+        # Verify values match predefined lists
+        self.assertEqual(list(mimetype_combo["values"]), COMMON_MIMETYPES)
+        self.assertEqual(list(charset_combo["values"]), COMMON_CHARSETS)
+        
+        # Test value selection
+        test_mime = "application/pdf"
+        test_charset = "UTF-8"
+        
+        mimetype_combo.set(test_mime)
+        self.assertEqual(self.ui.mimetype_var.get(), test_mime)
+        
+        charset_combo.set(test_charset)
+        self.assertEqual(self.ui.charset_var.get(), test_charset)
+
+    def test_combobox_filtering(self):
+        """Test combobox filtering functionality."""
+        # Get combobox references
+        mimetype_combo = self.ui.mimetype_combo
+        charset_combo = self.ui.charset_combo
+        original_mimetypes = self.ui._original_mimetype_values
+        original_charsets = self.ui._original_charset_values
+
+        # Create mock event
+        event = MagicMock()
+        event.keysym = 'a'
+
+        # Test MIME type filtering
+        mimetype_combo.set('a')
+        self.ui._filter_combobox(mimetype_combo, event, original_mimetypes)
+        filtered_mime = [v for v in original_mimetypes if 'a' in v.lower()]
+        self.assertEqual(list(mimetype_combo['values']), filtered_mime)
+
+        # Test empty string restoration
+        mimetype_combo.set('')
+        self.ui._filter_combobox(mimetype_combo, event, original_mimetypes)
+        self.assertEqual(list(mimetype_combo['values']), original_mimetypes)
+
+        # Test charset filtering and case insensitivity
+        charset_combo.set('utf')
+        self.ui._filter_combobox(charset_combo, event, original_charsets)
+        filtered_charset = [v for v in original_charsets if 'utf' in v.lower()]
+        self.assertEqual(list(charset_combo['values']), filtered_charset)
+
+        # Test UTF uppercase filtering
+        charset_combo.set('UTF')
+        self.ui._filter_combobox(charset_combo, event, original_charsets)
+        self.assertEqual(list(charset_combo['values']), filtered_charset)
 
     @patch('tkinter.filedialog.askopenfilename')
     def test_file_selection(self, mock_filedialog):
