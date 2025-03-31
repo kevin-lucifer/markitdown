@@ -9,11 +9,11 @@ import os
 import sys
 import unittest
 import tkinter as tk
-from tkinter import TclError
+from tkinter import TclError, ttk
 from unittest.mock import patch, MagicMock, PropertyMock
 
 # Import the UI components
-from markitdown_ui.app import MarkItDownUI
+from markitdown_ui.app import MarkItDownUI, COMMON_MIMETYPES, COMMON_CHARSETS
 from markitdown_ui.converter import ConverterManager, ConversionProgress
 from markitdown_ui.__main__ import main
 
@@ -80,6 +80,46 @@ class TestMarkItDownUI(unittest.TestCase):
         self.ui.use_docintel_var.set(False)
         self.ui._toggle_docintel()
         self.assertEqual(self.ui.endpoint_entry["state"], "disabled")
+
+    def test_combobox_parameters(self):
+        """Test combobox parameter controls in the UI."""
+        # Find parameters frame
+        params_frame = None
+        for widget in self.ui.main_frame.winfo_children():
+            if isinstance(widget, ttk.LabelFrame) and widget.cget("text") == "Parameters":
+                params_frame = widget
+                break
+        
+        self.assertIsNotNone(params_frame, "Parameters frame not found")
+        
+        # Find combobox widgets
+        mimetype_combo = None
+        charset_combo = None
+        for child in params_frame.winfo_children():
+            if isinstance(child, ttk.Combobox):
+                grid_info = child.grid_info()
+                if grid_info["row"] == 1:
+                    mimetype_combo = child
+                elif grid_info["row"] == 2:
+                    charset_combo = child
+        
+        # Verify combobox existence
+        self.assertIsNotNone(mimetype_combo, "MIME type combobox not found")
+        self.assertIsNotNone(charset_combo, "Charset combobox not found")
+        
+        # Verify values match predefined lists
+        self.assertEqual(list(mimetype_combo["values"]), COMMON_MIMETYPES)
+        self.assertEqual(list(charset_combo["values"]), COMMON_CHARSETS)
+        
+        # Test value selection
+        test_mime = "application/pdf"
+        test_charset = "UTF-8"
+        
+        mimetype_combo.set(test_mime)
+        self.assertEqual(self.ui.mimetype_var.get(), test_mime)
+        
+        charset_combo.set(test_charset)
+        self.assertEqual(self.ui.charset_var.get(), test_charset)
 
     @patch('tkinter.filedialog.askopenfilename')
     def test_file_selection(self, mock_filedialog):

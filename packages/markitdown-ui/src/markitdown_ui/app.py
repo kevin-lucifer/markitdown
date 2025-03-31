@@ -17,6 +17,35 @@ from markitdown.__about__ import __version__ as markitdown_version
 from markitdown_ui.preferences import PreferencesManager
 from markitdown_ui.theme import ThemeManager
 
+COMMON_MIMETYPES = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-powerpoint',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'text/html',
+    'text/plain',
+    'image/jpeg',
+    'image/png',
+    'audio/mpeg',
+    'audio/wav',
+    'application/epub+zip',
+    'application/json',
+]
+
+COMMON_CHARSETS = [
+    'UTF-8',
+    'UTF-16',
+    'ISO-8859-1',
+    'ISO-8859-15',
+    'ASCII',
+    'Windows-1252',
+    'CP-1251',
+    'EUC-JP',
+    'Shift-JIS',
+]
 
 class MarkItDownUI:
     """Main application class for the MarkItDown UI."""
@@ -189,13 +218,15 @@ class MarkItDownUI:
         # MIME type
         ttk.Label(params_frame, text="MIME Type:").grid(row=1, column=0, sticky="w", padx=5, pady=2)
         self.mimetype_var = tk.StringVar()
-        ttk.Entry(params_frame, textvariable=self.mimetype_var).grid(row=1, column=1, sticky="ew", padx=5, pady=2)
+        mimetype_combo = ttk.Combobox(params_frame, textvariable=self.mimetype_var, values=COMMON_MIMETYPES)
+        mimetype_combo.grid(row=1, column=1, sticky="ew", padx=5, pady=2)
         ttk.Label(params_frame, text="(e.g., application/pdf)").grid(row=1, column=2, sticky="w", padx=(0, 5), pady=2)
         
         # Charset
         ttk.Label(params_frame, text="Charset:").grid(row=2, column=0, sticky="w", padx=5, pady=2)
         self.charset_var = tk.StringVar()
-        ttk.Entry(params_frame, textvariable=self.charset_var).grid(row=2, column=1, sticky="ew", padx=5, pady=2)
+        charset_combo = ttk.Combobox(params_frame, textvariable=self.charset_var, values=COMMON_CHARSETS)
+        charset_combo.grid(row=2, column=1, sticky="ew", padx=5, pady=2)
         ttk.Label(params_frame, text="(e.g., UTF-8)").grid(row=2, column=2, sticky="w", padx=(0, 5), pady=2)
         
         # Document Intelligence
@@ -651,7 +682,7 @@ class MarkItDownUI:
         
         if not position:
             position = self._get_center_position(size)
-        
+                
         self.root.geometry(f"{size[0]}x{size[1]}+{position[0]}+{position[1]}")
     
     def _save_window_geometry(self) -> None:
