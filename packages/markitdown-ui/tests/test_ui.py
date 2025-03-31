@@ -121,6 +121,40 @@ class TestMarkItDownUI(unittest.TestCase):
         charset_combo.set(test_charset)
         self.assertEqual(self.ui.charset_var.get(), test_charset)
 
+    def test_combobox_filtering(self):
+        """Test combobox filtering functionality."""
+        # Get combobox references
+        mimetype_combo = self.ui.mimetype_combo
+        charset_combo = self.ui.charset_combo
+        original_mimetypes = self.ui._original_mimetype_values
+        original_charsets = self.ui._original_charset_values
+
+        # Create mock event
+        event = MagicMock()
+        event.keysym = 'a'
+
+        # Test MIME type filtering
+        mimetype_combo.set('a')
+        self.ui._filter_combobox(mimetype_combo, event, original_mimetypes)
+        filtered_mime = [v for v in original_mimetypes if 'a' in v.lower()]
+        self.assertEqual(list(mimetype_combo['values']), filtered_mime)
+
+        # Test empty string restoration
+        mimetype_combo.set('')
+        self.ui._filter_combobox(mimetype_combo, event, original_mimetypes)
+        self.assertEqual(list(mimetype_combo['values']), original_mimetypes)
+
+        # Test charset filtering and case insensitivity
+        charset_combo.set('utf')
+        self.ui._filter_combobox(charset_combo, event, original_charsets)
+        filtered_charset = [v for v in original_charsets if 'utf' in v.lower()]
+        self.assertEqual(list(charset_combo['values']), filtered_charset)
+
+        # Test UTF uppercase filtering
+        charset_combo.set('UTF')
+        self.ui._filter_combobox(charset_combo, event, original_charsets)
+        self.assertEqual(list(charset_combo['values']), filtered_charset)
+
     @patch('tkinter.filedialog.askopenfilename')
     def test_file_selection(self, mock_filedialog):
         """Test file selection functionality."""

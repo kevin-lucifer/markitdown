@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2024-present Adam Fourney <adamfo@microsoft.com>
 #
 # SPDX-License-Identifier: MIT
-
+#
 """Main application class for MarkItDown UI."""
 
 import os
@@ -36,15 +36,71 @@ COMMON_MIMETYPES = [
 ]
 
 COMMON_CHARSETS = [
+    # Unicode Encodings
     'UTF-8',
+    'UTF-8-SIG',
     'UTF-16',
+    'UTF-16-BE',
+    'UTF-16-LE',
+    'UTF-32',
+    'UTF-32-BE',
+    'UTF-32-LE',
+    
+    # ISO-8859 Series (Latin)
     'ISO-8859-1',
+    'ISO-8859-2',
+    'ISO-8859-3',
+    'ISO-8859-4',
+    'ISO-8859-5',
+    'ISO-8859-6',
+    'ISO-8859-7',
+    'ISO-8859-8',
+    'ISO-8859-9',
+    'ISO-8859-10',
+    'ISO-8859-11',
+    'ISO-8859-13',
+    'ISO-8859-14',
     'ISO-8859-15',
-    'ASCII',
+    'ISO-8859-16',
+    
+    # Windows Codepages
+    'Windows-1250',
+    'Windows-1251',
     'Windows-1252',
-    'CP-1251',
+    'Windows-1253',
+    'Windows-1254',
+    'Windows-1255',
+    'Windows-1256',
+    'Windows-1257',
+    'Windows-1258',
+    
+    # Asian Encodings
+    # Chinese
+    'Big5',
+    'GB18030',
+    'GB2312',
+    'GBK',
+    'HZ-GB-2312',
+    # Japanese
     'EUC-JP',
+    'ISO-2022-JP',
     'Shift-JIS',
+    # Korean
+    'EUC-KR',
+    'ISO-2022-KR',
+    'Johab',
+    
+    # Legacy and Special Encodings
+    'ASCII',
+    'EBCDIC-CP-HE',
+    'IBM437',
+    'IBM850',
+    'ISO-2022-CN',
+    'ISO-2022-CN-EXT',
+    'KOI8-R',
+    'KOI8-U',
+    'MacRoman',
+    'TIS-620',
 ]
 
 class MarkItDownUI:
@@ -218,15 +274,15 @@ class MarkItDownUI:
         # MIME type
         ttk.Label(params_frame, text="MIME Type:").grid(row=1, column=0, sticky="w", padx=5, pady=2)
         self.mimetype_var = tk.StringVar()
-        mimetype_combo = ttk.Combobox(params_frame, textvariable=self.mimetype_var, values=COMMON_MIMETYPES, state='normal')
-        mimetype_combo.grid(row=1, column=1, sticky="ew", padx=5, pady=2)
+        self.mimetype_combo = ttk.Combobox(params_frame, textvariable=self.mimetype_var, values=COMMON_MIMETYPES, state='normal')
+        self.mimetype_combo.grid(row=1, column=1, sticky="ew", padx=5, pady=2)
         ttk.Label(params_frame, text="(e.g., application/pdf)").grid(row=1, column=2, sticky="w", padx=(0, 5), pady=2)
         
         # Charset
         ttk.Label(params_frame, text="Charset:").grid(row=2, column=0, sticky="w", padx=5, pady=2)
         self.charset_var = tk.StringVar()
-        charset_combo = ttk.Combobox(params_frame, textvariable=self.charset_var, values=COMMON_CHARSETS, state='normal')
-        charset_combo.grid(row=2, column=1, sticky="ew", padx=5, pady=2)
+        self.charset_combo = ttk.Combobox(params_frame, textvariable=self.charset_var, values=COMMON_CHARSETS, state='normal')
+        self.charset_combo.grid(row=2, column=1, sticky="ew", padx=5, pady=2)
         ttk.Label(params_frame, text="(e.g., UTF-8)").grid(row=2, column=2, sticky="w", padx=(0, 5), pady=2)
         
         # Document Intelligence
@@ -250,6 +306,14 @@ class MarkItDownUI:
         self.keep_data_uris_var = tk.BooleanVar(value=False)
         data_uris_check = ttk.Checkbutton(params_frame, text="Keep Data URIs", variable=self.keep_data_uris_var)
         data_uris_check.grid(row=4, column=1, sticky="w", padx=5, pady=2)
+
+        self._original_mimetype_values = COMMON_MIMETYPES.copy()
+        self._original_charset_values = COMMON_CHARSETS.copy()
+
+        self.mimetype_combo.bind('<KeyRelease>', 
+            lambda e: self._filter_combobox(self.mimetype_combo, e, self._original_mimetype_values))
+        self.charset_combo.bind('<KeyRelease>',
+            lambda e: self._filter_combobox(self.charset_combo, e, self._original_charset_values))
 
     def _create_preview_frame(self) -> None:
         """Create the preview frame with markdown display area and save button."""
@@ -707,3 +771,18 @@ class MarkItDownUI:
         """Handle window closing event."""
         self._save_window_geometry()
         self.root.quit()
+
+    def _filter_combobox(self, combo: ttk.Combobox, event: tk.Event, original_values: list) -> None:
+        """Filter combobox values based on user input."""
+        current_text = combo.get().lower()
+        
+        if current_text:
+            filtered = [value for value in original_values if current_text in value.lower()]
+        else:
+            filtered = original_values
+        
+        combo['values'] = filtered
+        
+        if filtered:
+            combo.event_generate('<Down>')
+        combo.icursor(tk.END)
