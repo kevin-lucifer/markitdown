@@ -218,14 +218,14 @@ class MarkItDownUI:
         # MIME type
         ttk.Label(params_frame, text="MIME Type:").grid(row=1, column=0, sticky="w", padx=5, pady=2)
         self.mimetype_var = tk.StringVar()
-        mimetype_combo = ttk.Combobox(params_frame, textvariable=self.mimetype_var, values=COMMON_MIMETYPES)
+        mimetype_combo = ttk.Combobox(params_frame, textvariable=self.mimetype_var, values=COMMON_MIMETYPES, state='normal')
         mimetype_combo.grid(row=1, column=1, sticky="ew", padx=5, pady=2)
         ttk.Label(params_frame, text="(e.g., application/pdf)").grid(row=1, column=2, sticky="w", padx=(0, 5), pady=2)
         
         # Charset
         ttk.Label(params_frame, text="Charset:").grid(row=2, column=0, sticky="w", padx=5, pady=2)
         self.charset_var = tk.StringVar()
-        charset_combo = ttk.Combobox(params_frame, textvariable=self.charset_var, values=COMMON_CHARSETS)
+        charset_combo = ttk.Combobox(params_frame, textvariable=self.charset_var, values=COMMON_CHARSETS, state='normal')
         charset_combo.grid(row=2, column=1, sticky="ew", padx=5, pady=2)
         ttk.Label(params_frame, text="(e.g., UTF-8)").grid(row=2, column=2, sticky="w", padx=(0, 5), pady=2)
         
