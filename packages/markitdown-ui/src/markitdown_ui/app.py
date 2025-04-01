@@ -678,7 +678,7 @@ class MarkItDownUI:
     def _new_file(self) -> None:
         """Create a new file (clear the preview)."""
         self.open_file("")
-        self_clear_preview()
+        self._clear_preview()
         self._update_status("New file created")
     
     def _save_file(self) -> None:
@@ -804,21 +804,25 @@ class MarkItDownUI:
 
     def _filter_combobox(self, combo: ttk.Combobox, event: tk.Event, original_values: list) -> None:
         """Filter combobox values based on user input."""
-        current_text = combo.get().lower()
+        current_text = combo.get()
+        cursor_pos = combo.index(tk.INSERT)  # Save current cursor position
         
-        if current_text:
-            filtered = [value for value in original_values if current_text in value.lower()]
-        else:
-            filtered = original_values
+        filtered = [
+            value for value in original_values 
+            if current_text.lower() in value.lower()
+        ] if current_text else original_values
         
         combo['values'] = filtered
         
-        # Only show dropdown if there's text input
         if current_text:
-            if filtered:
-                combo.event_generate('<Down>')
-            # Maintain cursor position at end of input
-            combo.icursor(tk.END)
+            # Maintain dropdown visibility without auto-selecting items
+            if filtered and not combo.focus_get() == combo:  # Only open if not already focused
+                combo.event_generate('<Button-1>')  # Show dropdown without selection
+            # Restore original cursor position after filtering
+            combo.icursor(cursor_pos)
+            combo.selection_clear()
+        else:
+            combo.set('')
 
     def _setup_search_bindings(self) -> None:
         """Configure search-related key bindings."""
