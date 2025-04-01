@@ -169,6 +169,9 @@ class MarkItDownUI:
         # Set closing handler
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
         
+        # Add search bindings
+        self._setup_search_bindings()
+        
         # Add these bindings
         root.bind("<Control-o>", lambda e: self._open_file_dialog())
         root.bind("<Control-s>", lambda e: self._save_file())
@@ -328,9 +331,34 @@ class MarkItDownUI:
         )
         self.preview_text.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
         
+        # Search frame
+        self.search_frame = ttk.Frame(preview_frame)
+        self.search_frame.grid(row=1, column=0, sticky="ew", padx=5, pady=2)
+        
+        # Search entry
+        self.search_text_var = tk.StringVar()
+        self.search_entry = ttk.Entry(self.search_frame, textvariable=self.search_text_var)
+        self.search_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=2)
+        
+        # Case sensitivity toggle
+        self.case_sensitive_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(self.search_frame, text="Aa", variable=self.case_sensitive_var,
+                        command=self._find_text).pack(side=tk.LEFT, padx=2)
+        
+        # Navigation buttons
+        ttk.Button(self.search_frame, text="▲", width=3, command=self._find_previous).pack(side=tk.LEFT, padx=2)
+        ttk.Button(self.search_frame, text="▼", width=3, command=self._find_next).pack(side=tk.LEFT, padx=2)
+        
+        # Close button
+        ttk.Button(self.search_frame, text="✕", width=3, command=self._hide_search_frame).pack(side=tk.LEFT, padx=2)
+        
+        # Status label
+        self.search_status_var = tk.StringVar()
+        ttk.Label(self.search_frame, textvariable=self.search_status_var).pack(side=tk.RIGHT, padx=5)
+        
         # Bottom button frame
         button_frame = ttk.Frame(preview_frame)
-        button_frame.grid(row=1, column=0, sticky="e", padx=5, pady=5)
+        button_frame.grid(row=2, column=0, sticky="e", padx=5, pady=5)
         
         self.copy_button = ttk.Button(button_frame, text="Copy to Clipboard", command=self._copy_markdown)
         self.copy_button.pack(side=tk.RIGHT, padx=5)
@@ -338,12 +366,13 @@ class MarkItDownUI:
         self.save_button = ttk.Button(button_frame, text="Save As...", command=self._save_file_dialog)
         self.save_button.pack(side=tk.RIGHT, padx=5)
         
-        # Initially disable buttons
+        # Initially disable buttons and hide search
         self.copy_button["state"] = "disabled"
         self.save_button["state"] = "disabled"
+        self.search_frame.grid_remove()
         
-        # Add this binding in _create_preview_frame after creating preview_text
         self.preview_text.bind("<<Modified>>", self._update_document_stats)
+        self._configure_search_tags()
 
     def _create_status_bar(self) -> None:
         """Create the status bar with document statistics."""
@@ -738,6 +767,7 @@ class MarkItDownUI:
         self.theme.apply_theme(new_theme)
         self.theme.apply_text_widget_theme(self.preview_text)
         self.theme.apply_menu_theme(self.root.nametowidget(self.root["menu"]))
+        self._configure_search_tags()
     
     def _load_window_geometry(self) -> None:
         """Load and apply saved window geometry."""
@@ -786,3 +816,148 @@ class MarkItDownUI:
         if filtered:
             combo.event_generate('<Down>')
         combo.icursor(tk.END)
+
+    def _setup_search_bindings(self) -> None:
+        """Configure search-related key bindings."""
+        self.root.bind("<Control-f>", lambda e: self._toggle_search_visibility())
+        self.search_entry.bind("<Return>", lambda e: self._find_next())
+        self.search_entry.bind("<Shift-Return>", lambda e: self._find_previous())
+        self.search_entry.bind("<Escape>", lambda e: self._hide_search_frame())
+        self.search_entry.bind("<KeyRelease>", lambda e: self._find_text())
+        
+        # Prevent focus stealing from search entry
+        self.search_entry.bind("<Up>", lambda e: "break")
+        self.search_entry.bind("<Down>", lambda e: "break")
+
+    def _toggle_search_visibility(self) -> None:
+        """Toggle search frame visibility."""
+        if self.search_frame.winfo_ismapped():
+            self._hide_search_frame()
+        else:
+            self._show_search_frame()
+
+    def _show_search_frame(self) -> None:
+        """Show the search frame and focus the entry."""
+        self.search_frame.grid()
+        self.search_entry.focus_set()
+        self._find_text()
+
+    def _hide_search_frame(self) -> None:
+        """Hide the search frame and clear highlights."""
+        self.search_frame.grid_remove()
+        self._clear_search_highlighting()
+        self.search_status_var.set("")
+        self.preview_text.focus_set()
+
+    def _find_text(self, event=None) -> None:
+        """Search for text in the preview content."""
+        self._clear_search_highlighting()
+        search_term = self.search_text_var.get()
+        if not search_term:
+            return
+
+        self.preview_text.tag_remove("search_highlight", "1.0", tk.END)
+        self.preview_text.tag_remove("current_match", "1.0", tk.END)
+        
+        count = 0
+        start_pos = "1.0"
+        while True:
+            pos = self.preview_text.search(
+                search_term, 
+                start_pos, 
+                stopindex=tk.END,
+                nocase=not self.case_sensitive_var.get(),
+                regexp=False
+            )
+            if not pos:
+                break
+            end_pos = f"{pos}+{len(search_term)}c"
+            self.preview_text.tag_add("search_highlight", pos, end_pos)
+            start_pos = end_pos
+            count += 1
+        
+        if count > 0:
+            self.search_status_var.set(f"{count} matches")
+            self._find_next()
+        else:
+            self.search_status_var.set("No matches found")
+
+    def _find_next(self) -> None:
+        """Navigate to next search match."""
+        search_term = self.search_text_var.get()
+        if not search_term:
+            return
+
+        start_pos = self.preview_text.index(tk.INSERT + "+1c")
+        pos = self.preview_text.search(
+            search_term, 
+            start_pos, 
+            stopindex=tk.END,
+            nocase=not self.case_sensitive_var.get()
+        )
+        
+        if not pos:
+            pos = self.preview_text.search(
+                search_term, 
+                "1.0", 
+                stopindex=tk.END,
+                nocase=not self.case_sensitive_var.get()
+            )
+            if not pos:
+                return
+
+        self._highlight_current_match(pos, f"{pos}+{len(search_term)}c")
+
+    def _find_previous(self) -> None:
+        """Navigate to previous search match."""
+        search_term = self.search_text_var.get()
+        if not search_term:
+            return
+
+        start_pos = self.preview_text.index(tk.INSERT + "-1c")
+        pos = self.preview_text.search(
+            search_term, 
+            start_pos, 
+            stopindex="1.0",
+            backwards=True,
+            nocase=not self.case_sensitive_var.get()
+        )
+        
+        if not pos:
+            pos = self.preview_text.search(
+                search_term, 
+                tk.END, 
+                stopindex="1.0",
+                backwards=True,
+                nocase=not self.case_sensitive_var.get()
+            )
+            if not pos:
+                return
+
+        self._highlight_current_match(pos, f"{pos}+{len(search_term)}c")
+
+    def _highlight_current_match(self, start: str, end: str) -> None:
+        """Highlight the current active match."""
+        self.preview_text.tag_remove("current_match", "1.0", tk.END)
+        self.preview_text.tag_add("current_match", start, end)
+        self.preview_text.see(start)
+        self.preview_text.mark_set(tk.INSERT, start)
+
+    def _clear_search_highlighting(self) -> None:
+        """Remove all search highlighting."""
+        self.preview_text.tag_remove("search_highlight", "1.0", tk.END)
+        self.preview_text.tag_remove("current_match", "1.0", tk.END)
+
+    def _configure_search_tags(self) -> None:
+        """Configure text tags for search highlighting."""
+        colors = self.theme.get_theme_colors()
+        self.preview_text.tag_configure(
+            "search_highlight", 
+            background=colors["highlight"],
+            foreground=colors["highlight_text"]
+        )
+        self.preview_text.tag_configure(
+            "current_match", 
+            background=colors["accent"],
+            foreground=colors["highlight_text"]
+        )
