@@ -239,28 +239,28 @@ class TestUIFeatures(unittest.TestCase):
          bindings = self.root.bind()
          
          # Check for required bindings
--        self.assertIn("<Control-Key-o>", bindings)
--        self.assertIn("<Control-Key-s>", bindings)
--        self.assertIn("<Control-Key-plus>", bindings)
--        self.assertIn("<Control-Key-minus>", bindings)
--        self.assertIn("<Control-Key-0>", bindings)
--        self.assertIn("<Control-Key-t>", bindings)
-+        self.assertIn("<Control-o>", bindings)
-+        self.assertIn("<Control-s>", bindings)
-+        self.assertIn("<Control-plus>", bindings)
-+        self.assertIn("<Control-minus>", bindings)
-+        self.assertIn("<Control-0>", bindings)
-+        self.assertIn("<Control-t>", bindings)
-         
-         # Test binding callbacks
-         with patch.object(self.ui, 'zoom_in') as mock_zoom:
--            self.root.event_generate("<Control-Key-plus>")
-+            self.root.event_generate("<Control-plus>")
-             mock_zoom.assert_called_once()
+         self.assertIn("<Control-Key-o>", bindings)
+         self.assertIn("<Control-Key-s>", bindings)
+         self.assertIn("<Control-Key-plus>", bindings)
+         self.assertIn("<Control-Key-minus>", bindings)
+         self.assertIn("<Control-Key-0>", bindings)
+         self.assertIn("<Control-Key-t>", bindings)
+         self.assertIn("<Control-o>", bindings)
+         self.assertIn("<Control-s>", bindings)
+         self.assertIn("<Control-plus>", bindings)
+         self.assertIn("<Control-minus>", bindings)
+         self.assertIn("<Control-0>", bindings)
+         self.assertIn("<Control-t>", bindings)
+
+        # Test binding callbacks
+        with patch.object(self.ui, 'zoom_in') as mock_zoom:
+            self.root.event_generate("<Control-Key-plus>")
+            self.root.event_generate("<Control-plus>")
+            mock_zoom.assert_called_once()
          # Note: Can't directly test event callbacks in unittest
          # but we can check that the bindings exist and point to the correct methods
--        callback = self.root.bind("<Control-Key-o>")
-+        callback = self.root.bind("<Control-o>")
-         self.assertIsNotNone(callback)
+        callback = self.root.bind("<Control-Key-o>")
+        callback = self.root.bind("<Control-o>")
+        self.assertIsNotNone(callback)
 
      def test_status_bar_updates(self):

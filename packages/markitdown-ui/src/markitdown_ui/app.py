@@ -119,6 +119,7 @@ class MarkItDownUI:
         self.conversion_thread: Optional[threading.Thread] = None
         self.is_converting = False
         self.zoom_level = 0
+        self.isDebug = False  # 添加 isDebug 变量
         
         # Configure the root window
         self.root.columnconfigure(0, weight=1)
@@ -313,9 +314,9 @@ class MarkItDownUI:
         self._original_mimetype_values = COMMON_MIMETYPES.copy()
         self._original_charset_values = COMMON_CHARSETS.copy()
 
-        self.mimetype_combo.bind('<KeyRelease>', 
+        self.mimetype_combo.bind('<Return>', 
             lambda e: self._filter_combobox(self.mimetype_combo, e, self._original_mimetype_values))
-        self.charset_combo.bind('<KeyRelease>',
+        self.charset_combo.bind('<Return>',
             lambda e: self._filter_combobox(self.charset_combo, e, self._original_charset_values))
 
     def _create_preview_frame(self) -> None:
@@ -514,7 +515,7 @@ class MarkItDownUI:
             
         except Exception as e:
             # Show error on the main thread
-            self.root.after(0, lambda: self._show_error(str(e)))
+            self.root.after(0, lambda e=e: self._show_error(str(e)))
         finally:
             # Reset conversion state on the main thread
             self.root.after(0, self._reset_conversion_state)
@@ -961,3 +962,19 @@ class MarkItDownUI:
             background=colors["accent"],
             foreground=colors["highlight_text"]
         )
+
+    def _log_debug(self, message: str) -> None:
+        """Log debug message to the debug text box if isDebug is True."""
+        if self.isDebug:
+            self.debug_text.insert(tk.END, message + "\n")
+            self.debug_text.see(tk.END)
+
+    def _toggle_debug(self) -> None:
+        """Toggle the visibility of the debug text box."""
+        self.isDebug = not self.isDebug
+        if self.isDebug:
+            self.debug_text.grid()
+        else:
+            self.debug_text.grid_remove()
+
+
