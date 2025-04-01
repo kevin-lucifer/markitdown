@@ -678,7 +678,7 @@ class MarkItDownUI:
     def _new_file(self) -> None:
         """Create a new file (clear the preview)."""
         self.open_file("")
-        self._clear_preview()
+        self_clear_preview()
         self._update_status("New file created")
     
     def _save_file(self) -> None:
@@ -813,9 +813,12 @@ class MarkItDownUI:
         
         combo['values'] = filtered
         
-        if filtered:
-            combo.event_generate('<Down>')
-        combo.icursor(tk.END)
+        # Only show dropdown if there's text input
+        if current_text:
+            if filtered:
+                combo.event_generate('<Down>')
+            # Maintain cursor position at end of input
+            combo.icursor(tk.END)
 
     def _setup_search_bindings(self) -> None:
         """Configure search-related key bindings."""
