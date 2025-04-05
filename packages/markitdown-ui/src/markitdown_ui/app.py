@@ -439,12 +439,39 @@ class MarkItDownUI:
         if file_path:
             self.open_file(file_path)
 
+    def _is_file_supported(self, file_path: str) -> bool:
+        """Check if a file type is supported by available converters."""
+        try:
+            with open(file_path, 'rb') as f:
+                base_guess = StreamInfo(
+                    local_path=file_path,
+                    extension=os.path.splitext(file_path)[1],
+                    filename=os.path.basename(file_path)
+                )
+                # Check all converters for acceptance
+                if not hasattr(self.converter, '_converters'):
+                    return False
+                for converter_reg in self.converter._converters:
+                    f.seek(0)
+                    if converter_reg.converter.accepts(f, base_guess):
+                        return True
+                return False
+        except Exception:
+            return False
+
     def open_file(self, file_path: str) -> None:
         """Open a file and update the UI.
         
         Args:
             file_path: Path to the file to open
         """
+        if not self._is_file_supported(file_path):
+            ext = os.path.splitext(file_path)[1].lower()
+            error_msg = f"Unsupported file type: {ext}" if ext else "Unsupported file type"
+            self.notification_manager.add_error(error_msg, source="conversion")
+            self._update_status("Unsupported file type")
+            return
+        
         self.file_path_var.set(file_path)
         self.current_file = file_path
         
@@ -467,6 +494,13 @@ class MarkItDownUI:
         """Convert the selected file to Markdown."""
         if not self.file_path_var.get():
             self.notification_manager.add_error("Please select a file first.")
+            return
+            
+        file_path = self.file_path_var.get()
+        if not self._is_file_supported(file_path):
+            ext = os.path.splitext(file_path)[1].lower()
+            error_msg = f"Cannot convert unsupported file type: {ext}" if ext else "Unsupported file type"
+            self.notification_manager.add_error(error_msg, source="conversion")
             return
         
         if self.is_converting:
@@ -529,7 +563,11 @@ class MarkItDownUI:
             self.root.after(0, self._update_preview_with_result)
             
         except Exception as e:
-            self.root.after(0, lambda e=e: self.notification_manager.add_from_exception(e))
+            self.root.after(0, lambda e=e: [
+                self.notification_manager.add_from_exception(e),
+                self._update_status(f"Error: {str(e)[:50]}..."),
+                self._reset_conversion_state()
+            ])
         finally:
             # Reset conversion state on the main thread
             self.root.after(0, self._reset_conversion_state)
@@ -556,6 +594,10 @@ class MarkItDownUI:
         self.progress_bar.stop()
         self.progress_bar.grid_remove()
         self._set_ui_state(True)
+        
+        # Clear any hanging status messages
+        if self.status_var.get().startswith("Converting"):
+            self._update_status("Ready")
 
     def _set_ui_state(self, enabled: bool) -> None:
         """Enable or disable UI elements during conversion.
@@ -649,7 +691,7 @@ class MarkItDownUI:
         # Center window relative to main application
         main_x = self.root.winfo_x()
         main_y = self.root.winfo_y()
-        main_width = self.root.winfo_width()
+        main_width = self.root.winfo_width()        
         about_win.geometry(f"+{main_x + (main_width - 400)//2}+{main_y + 50}")
 
         # Get theme colors
