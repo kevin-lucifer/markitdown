@@ -8,7 +8,7 @@
 import os
 import threading
 import tkinter as tk
-from tkinter import ttk, filedialog, scrolledtext, messagebox, Menu, font
+from tkinter import ttk, filedialog, scrolledtext, Menu, messagebox, font
 from typing import Optional, Dict, Any, List, Tuple
 
 from markitdown import MarkItDown, StreamInfo, DocumentConverterResult
@@ -16,6 +16,8 @@ from markitdown.__about__ import __version__ as markitdown_version
 
 from markitdown_ui.preferences import PreferencesManager
 from markitdown_ui.theme import ThemeManager
+from markitdown_ui.notifications import NotificationManager
+from markitdown_ui.notification_widgets import NotificationArea
 
 COMMON_MIMETYPES = [
     'application/pdf',
@@ -132,6 +134,10 @@ class MarkItDownUI:
         self.theme = ThemeManager()
         self.theme.initialize(root)
         
+        # Add notification system
+        self.notification_manager = NotificationManager()
+        self.notification_manager.initialize(root)
+        
         # Load saved preferences
         self._load_window_geometry()
         self.zoom_level = self.prefs.get_zoom_level()
@@ -160,7 +166,10 @@ class MarkItDownUI:
         # Initialize zoom font after preview frame exists
         self._update_zoom_font()
         
-        # Create status bar
+        # Create notification area
+        self._create_notification_area()
+        
+        # Create status bar (moved to row 5)
         self._create_status_bar()
         
         # Update status
@@ -374,10 +383,15 @@ class MarkItDownUI:
         self.preview_text.bind("<<Modified>>", self._update_document_stats)
         self._configure_search_tags()
 
+    def _create_notification_area(self) -> None:
+        """Create notification area widget."""
+        self.notification_area = NotificationArea(self.main_frame)
+        self.notification_area.grid(row=4, column=0, sticky="ew", pady=(0, 5))
+
     def _create_status_bar(self) -> None:
         """Create the status bar with document statistics."""
         status_frame = ttk.Frame(self.main_frame)
-        status_frame.grid(row=4, column=0, sticky="ew")
+        status_frame.grid(row=5, column=0, sticky="ew")  # Changed from row 4
         
         # Document statistics
         self.stats_var = tk.StringVar()
@@ -394,7 +408,7 @@ class MarkItDownUI:
         self.progress_bar = ttk.Progressbar(
             self.main_frame, orient=tk.HORIZONTAL, length=100, mode="indeterminate", variable=self.progress_var
         )
-        self.progress_bar.grid(row=5, column=0, sticky="ew", pady=(5, 0))
+        self.progress_bar.grid(row=6, column=0, sticky="ew", pady=(5, 0))  # Changed from row 5
         self.progress_bar.grid_remove()  # Hide initially
 
     def _toggle_docintel(self) -> None:
@@ -417,6 +431,8 @@ class MarkItDownUI:
                 ("HTML Files", "*.html"),
                 ("Images", "*.jpg *.jpeg *.png"),
                 ("Audio Files", "*.mp3 *.wav *.m4a"),
+                ("EPUB Files", "*.epub"),
+                ("JSON Files", "*.json"),
             ],
         )
         
@@ -450,11 +466,11 @@ class MarkItDownUI:
     def _convert_file(self) -> None:
         """Convert the selected file to Markdown."""
         if not self.file_path_var.get():
-            messagebox.showerror("Error", "Please select a file first.")
+            self.notification_manager.add_error("Please select a file first.")
             return
         
         if self.is_converting:
-            messagebox.showinfo("Info", "Conversion already in progress.")
+            self.notification_manager.add_info("Conversion already in progress.")
             return
         
         # Get file path
@@ -499,7 +515,7 @@ class MarkItDownUI:
         """Perform the conversion in a background thread.
         
         Args:
-            file_path: Path to the file to convert
+        file_path: Path to the file to convert
         **kwargs: Additional arguments for the conversion
         """
         try:
@@ -513,8 +529,7 @@ class MarkItDownUI:
             self.root.after(0, self._update_preview_with_result)
             
         except Exception as e:
-            # Show error on the main thread
-            self.root.after(0, lambda: self._show_error(str(e)))
+            self.root.after(0, lambda: self.notification_manager.add_from_exception(e))
         finally:
             # Reset conversion state on the main thread
             self.root.after(0, self._reset_conversion_state)
@@ -566,7 +581,7 @@ class MarkItDownUI:
         Args:
             message: Error message to display
         """
-        messagebox.showerror("Conversion Error", message)
+        self.notification_manager.add_error(message)
         self._update_status(f"Error: {message[:50]}...")
 
     def _update_status(self, status: str) -> None:
@@ -580,7 +595,7 @@ class MarkItDownUI:
     def _save_file_dialog(self) -> None:
         """Open a save file dialog to save the converted markdown."""
         if not self.current_result:
-            messagebox.showinfo("Info", "No conversion result to save.")
+            self.notification_manager.add_info("No conversion result to save.")
             return
         
         file_path = filedialog.asksaveasfilename(
@@ -595,12 +610,12 @@ class MarkItDownUI:
                     f.write(self.current_result.text_content)
                 self._update_status(f"File saved: {os.path.basename(file_path)}")
             except Exception as e:
-                messagebox.showerror("Error", f"Failed to save file: {str(e)}")
+                self.notification_manager.add_error(f"Failed to save file: {str(e)}")
 
     def _copy_markdown(self) -> None:
         """Copy the markdown content to clipboard."""
         if not self.current_result:
-            messagebox.showinfo("Info", "No conversion result to copy.")
+            self.notification_manager.add_info("No conversion result to copy.")
             return
         
         self.root.clipboard_clear()
@@ -684,7 +699,7 @@ class MarkItDownUI:
     def _save_file(self) -> None:
         """Save the current markdown content."""
         if not self.current_result:
-            messagebox.showinfo("Info", "No conversion result to save.")
+            self.notification_manager.add_info("No conversion result to save.")
             return
         
         if not self.current_file:
@@ -696,7 +711,7 @@ class MarkItDownUI:
                 f.write(self.current_result.text_content)
             self._update_status(f"File saved: {os.path.basename(self.current_file)}")
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to save file: {str(e)}")
+            self.notification_manager.add_error(f"Failed to save file: {str(e)}")
     
     def _paste_content(self) -> None:
         """Paste content from clipboard to preview."""
@@ -705,11 +720,11 @@ class MarkItDownUI:
             self.preview_text.insert(tk.INSERT, text)
             self._update_document_stats()
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to paste: {str(e)}")
+            self.notification_manager.add_error(f"Failed to paste: {str(e)}")
     
     def _show_docs(self) -> None:
         """Show the documentation."""
-        messagebox.showinfo("Documentation", "No documentation available yet.")
+        self.notification_manager.add_info("No documentation available yet.")
     
     def zoom_in(self) -> None:
         """Increase the preview text zoom level."""
