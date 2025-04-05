@@ -12,6 +12,7 @@ from typing import Any, Dict, Optional, Callable, Tuple, List
 
 from markitdown import MarkItDown, StreamInfo, DocumentConverterResult
 from markitdown._exceptions import FileConversionException, MarkItDownException
+from markitdown_ui.notifications import NotificationManager
 
 
 class ConversionError(Exception):
@@ -39,6 +40,9 @@ class ConversionProgress:
         self.is_complete: bool = False
         self.is_error: bool = False
         self.error_message: Optional[str] = None
+        self.warning_count: int = 0
+        self.error_count: int = 0
+        self.warnings: List[str] = []
         
     def update(self, status: str, progress: float = None) -> None:
         """Update the conversion progress.
@@ -50,6 +54,15 @@ class ConversionProgress:
         self.status = status
         if progress is not None:
             self.progress = max(0.0, min(1.0, progress))
+    
+    def add_warning(self, message: str) -> None:
+        """Add a warning to the conversion progress.
+        
+        Args:
+            message: Warning message
+        """
+        self.warning_count += 1
+        self.warnings.append(message)
     
     def complete(self, status: str = "Conversion complete") -> None:
         """Mark the conversion as complete.
@@ -71,6 +84,7 @@ class ConversionProgress:
         self.is_complete = True
         self.is_error = True
         self.error_message = message
+        self.error_count += 1
 
 
 class ConverterManager:
@@ -91,7 +105,7 @@ class ConverterManager:
             callback: Function to call with progress updates
         """
         self.callback = callback
-    
+        
     def _update_progress(self, status: str, progress: float = None) -> None:
         """Update the progress and invoke the callback.
         
@@ -99,7 +113,8 @@ class ConverterManager:
             status: Status message
             progress: Progress value or None
         """
-        self.progress.update(status, progress)
+        status_with_counts = f"{status} | Warnings: {self.progress.warning_count}, Errors: {self.progress.error_count}"
+        self.progress.update(status_with_counts, progress)
         if self.callback:
             self.callback(self.progress)
     
@@ -218,18 +233,22 @@ class ConverterManager:
                 error_msg += "No suitable converter found for this file."
                 
             self.progress.error(error_msg)
+            NotificationManager().add_error(error_msg, source="conversion")
             if self.callback:
                 self.callback(self.progress)
                 
         except MarkItDownException as e:
             # Handle other MarkItDown exceptions
             self.progress.error(str(e))
+            NotificationManager().add_error(str(e), source="conversion")
             if self.callback:
                 self.callback(self.progress)
                 
         except Exception as e:
             # Handle unexpected exceptions
-            self.progress.error(f"Unexpected error: {str(e)}")
+            error_msg = f"Unexpected error: {str(e)}"
+            self.progress.error(error_msg)
+            NotificationManager().add_error(error_msg, source="conversion")
             if self.callback:
                 self.callback(self.progress)
     
@@ -254,7 +273,7 @@ class ConverterManager:
         
         Args:
             file_path: Path to the file to validate
-            
+        
         Returns:
             Tuple of (is_valid, error_message)
         """
@@ -277,7 +296,7 @@ class ConverterManager:
         
         Args:
             parameters: Dictionary of parameters to validate
-            
+        
         Returns:
             Tuple of (is_valid, error_message)
         """

@@ -25,6 +25,17 @@ class PreferencesManager:
         "window_size": (800, 600),  # Default window size (width, height)
         "window_position": None,  # Window position (x, y), None for center
         "max_recent_files": 10,  # Maximum number of recent files to track
+        "notification_settings": {
+            "enabled_types": ["info", "warning", "error", "success"],
+            "auto_dismiss": {
+                "info": 5,
+                "warning": 10,
+                "error": None,  # No auto-dismiss for errors by default
+                "success": 5
+            },
+            "default_duration": 10,  # Seconds for notifications without type-specific duration
+            "enable_sounds": False
+        }
     }
     
     def __new__(cls) -> "PreferencesManager":
@@ -231,3 +242,46 @@ class PreferencesManager:
             Tuple containing (x, y) or None for default centering
         """
         return self._preferences.get("window_position", None)
+
+    def get_notification_enabled_types(self) -> List[str]:
+        """Get list of enabled notification types.
+        
+        Returns:
+            List of enabled notification type names
+        """
+        return self._preferences.get("notification_settings", {}).get(
+            "enabled_types", ["info", "warning", "error", "success"]
+        )
+
+    def get_auto_dismiss_time(self, type_: str) -> Optional[int]:
+        """Get auto-dismiss time for a notification type.
+        
+        Args:
+            type_: Notification type name (info/warning/error/success)
+            
+        Returns:
+            Dismiss time in seconds or None for no auto-dismiss
+        """
+        return self._preferences.get("notification_settings", {}).get(
+            "auto_dismiss", {}
+        ).get(type_)
+
+    def get_notification_duration(self) -> int:
+        """Get default notification display duration.
+        
+        Returns:
+            Duration in seconds
+        """
+        return self._preferences.get("notification_settings", {}).get(
+            "default_duration", 10
+        )
+
+    def get_notification_sound_enabled(self) -> bool:
+        """Check if notification sounds are enabled.
+        
+        Returns:
+            True if sounds enabled, False otherwise
+        """
+        return self._preferences.get("notification_settings", {}).get(
+            "enable_sounds", False
+        )
