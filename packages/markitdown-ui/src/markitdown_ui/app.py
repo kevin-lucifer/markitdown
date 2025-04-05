@@ -563,7 +563,7 @@ class MarkItDownUI:
             self.root.after(0, self._update_preview_with_result)
             
         except Exception as e:
-            self.root.after(0, lambda: [
+            self.root.after(0, lambda e=e: [
                 self.notification_manager.add_from_exception(e),
                 self._update_status(f"Error: {str(e)[:50]}..."),
                 self._reset_conversion_state()
@@ -691,7 +691,8 @@ class MarkItDownUI:
         # Center window relative to main application
         main_x = self.root.winfo_x()
         main_y = self.root.winfo_y()
-        main_width = self.root.winfo_width()        about_win.geometry(f"+{main_x + (main_width - 400)//2}+{main_y + 50}")
+        main_width = self.root.winfo_width()        
+        about_win.geometry(f"+{main_x + (main_width - 400)//2}+{main_y + 50}")
 
         # Get theme colors
         colors = self.theme.get_theme_colors()
