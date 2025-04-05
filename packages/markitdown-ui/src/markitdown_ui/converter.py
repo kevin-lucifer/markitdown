@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2024-present Adam Fourney <adamfo@microsoft.com>
 #
 # SPDX-License-Identifier: MIT
-
+#
 """Converter module for handling file conversions in the MarkItDown UI."""
 
 import os
@@ -11,7 +11,7 @@ import time
 from typing import Any, Dict, Optional, Callable, Tuple, List
 
 from markitdown import MarkItDown, StreamInfo, DocumentConverterResult
-from markitdown._exceptions import FileConversionException, MarkItDownException
+from markitdown._exceptions import FileConversionException, MarkItDownException, UnsupportedFormatException
 from markitdown_ui.notifications import NotificationManager
 
 
@@ -224,23 +224,35 @@ class ConverterManager:
                 raise ConversionError("Conversion produced no result")
                 
         except FileConversionException as e:
-            # Format a more user-friendly error message from the exception
+            # Extract file extension for error message
+            ext = os.path.splitext(file_path)[1].lower()
             error_msg = "Unable to convert file format. "
+            
             if e.attempts:
                 converters_tried = len(e.attempts)
                 error_msg += f"Tried {converters_tried} converters, but none succeeded."
             else:
-                error_msg += "No suitable converter found for this file."
-                
+                if ext:
+                    error_msg += f"No suitable converter found for '{ext}' files."
+                else:
+                    error_msg += "No suitable converter found for this file."
+            
             self.progress.error(error_msg)
             NotificationManager().add_error(error_msg, source="conversion")
             if self.callback:
                 self.callback(self.progress)
                 
         except MarkItDownException as e:
-            # Handle other MarkItDown exceptions
-            self.progress.error(str(e))
-            NotificationManager().add_error(str(e), source="conversion")
+            # Handle unsupported format exception specifically
+            if isinstance(e, UnsupportedFormatException):
+                ext = os.path.splitext(file_path)[1].lower()
+                error_msg = f"Unsupported file type '{ext}'" if ext else "Unsupported file type"
+                error_msg += ": No converter available"
+            else:
+                error_msg = str(e)
+            
+            self.progress.error(error_msg)
+            NotificationManager().add_error(error_msg, source="conversion")
             if self.callback:
                 self.callback(self.progress)
                 
