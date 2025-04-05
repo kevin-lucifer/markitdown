@@ -529,7 +529,7 @@ class MarkItDownUI:
             self.root.after(0, self._update_preview_with_result)
             
         except Exception as e:
-            self.root.after(0, lambda: self.notification_manager.add_from_exception(e))
+            self.root.after(0, lambda e=e: self.notification_manager.add_from_exception(e))
         finally:
             # Reset conversion state on the main thread
             self.root.after(0, self._reset_conversion_state)
