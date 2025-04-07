@@ -571,7 +571,8 @@ class MarkItDownUI:
             self.root.after(0, lambda e=e: [
                 self.notification_manager.add_from_exception(e),
                 self._update_status(f"Error: {str(e)[:50]}..."),
-                self._reset_conversion_state()
+                self._reset_conversion_state(),
+                messagebox.showerror("Conversion Error", f"An error occurred during conversion:\n\n{str(e)}", parent=self.root)
             ])
         finally:
             # Reset conversion state on the main thread
