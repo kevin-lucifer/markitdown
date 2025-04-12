@@ -469,6 +469,11 @@ class MarkItDownUI:
             ext = os.path.splitext(file_path)[1].lower()
             error_msg = f"Unsupported file type: {ext}" if ext else "Unsupported file type"
             self.notification_manager.add_error(error_msg, source="conversion")
+            messagebox.showerror(
+                "Unsupported File Type",
+                f"Cannot open {os.path.basename(file_path)}: {error_msg}",
+                parent=self.root
+            )
             self._update_status("Unsupported file type")
             return
         
@@ -566,7 +571,8 @@ class MarkItDownUI:
             self.root.after(0, lambda e=e: [
                 self.notification_manager.add_from_exception(e),
                 self._update_status(f"Error: {str(e)[:50]}..."),
-                self._reset_conversion_state()
+                self._reset_conversion_state(),
+                messagebox.showerror("Conversion Error", f"An error occurred during conversion:\n\n{str(e)}", parent=self.root)
             ])
         finally:
             # Reset conversion state on the main thread
@@ -663,7 +669,7 @@ class MarkItDownUI:
         self.root.clipboard_clear()
         self.root.clipboard_append(self.current_result.text_content)
         self._update_status("Copied to clipboard")
-
+    
     def _select_all(self) -> None:
         """Select all text in the preview."""
         self.preview_text.tag_add(tk.SEL, "1.0", tk.END)

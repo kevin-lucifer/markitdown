@@ -501,7 +501,7 @@ class NotificationArea(ttk.Frame):
         
         # Apply small button style if not already defined
         style = ttk.Style()
-        if "small.TButton" not in style.layout():
+        if "small.TButton" not in style.layout("small.TButton"):
             style.configure("small.TButton", padding=2, font=("Helvetica", 8))
     
     def _on_notification_added(self, notification: Notification) -> None:
